@@ -1,0 +1,15 @@
+{
+  "name": "drona-deck-didac",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Drona Deck NFC card flow for the DIDAC booth (Science x Depth)",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "booth": "node -e \"process.env.DEV_TOOLS='false'; require('./server/index.js')\"",
+    "test": "node --test"
+  }
+}
