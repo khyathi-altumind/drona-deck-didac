@@ -91,10 +91,11 @@ function ladder(level) {
   return `<div class="ladder" aria-label="Level ${level} of ${MAX_LEVEL}">${dots}<span>L${level} · ${esc(levelName(level))}</span></div>`;
 }
 
-function header(s) {
+function header(s, station) {
+  const where = station ? `Station ${station}` : 'DIDAC booth';
   const meta = s.answered
-    ? `Score <b>${s.score}</b> · ${s.correct}/${s.answered} correct`
-    : 'DIDAC booth';
+    ? `Score <b>${s.score}</b> · ${s.correct}/${s.answered} correct · ${where}`
+    : where;
   return `<header class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">${meta}</span></header>`;
 }
 
@@ -136,7 +137,7 @@ function phaseBody(s) {
     case 'QUESTION':
       return `<section class="panel">${questionEyebrow(s)}
 <p class="stem">${esc(s.question.stem)}</p>
-<p class="lead" style="margin-top:18px">Make your call. Tap a chip:</p>
+<p class="lead" style="margin-top:18px">Make your call. Press a button:</p>
 <div class="chips"><span class="chip RDY">Ready</span><span class="chip AST">Assist</span><span class="chip PAS">Pass</span></div>
 <p class="lead" style="font-size:13px;color:var(--muted)">Ready: answer alone (+2, level up). Assist: get a hint (+1). Pass: new question.</p>
 </section>`;
@@ -193,11 +194,37 @@ function devBar(set) {
   return `<nav class="devbar"><b>DEV TAP</b>${links}<a href="/dev">Tools</a></nav>`;
 }
 
-function playPage(s, { devTools }) {
+// The call button box is a USB/Bluetooth keyboard: R/A/P (or F13/F14/F15) send Ready/Assist/Pass
+// through the same /k/ routes as the chips. Keys 1-4 pick an answer, for keyboard testing.
+function buttonScript(station) {
+  return `<script>
+(function () {
+  var station = ${station ? Number(station) : 'null'};
+  var calls = { r: 'RDY', a: 'AST', p: 'PAS', F13: 'RDY', F14: 'AST', F15: 'PAS' };
+  var busy = false;
+  document.addEventListener('keydown', function (e) {
+    if (busy || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+    var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (calls[k]) {
+      busy = true;
+      e.preventDefault();
+      location.href = '/k/' + calls[k] + (station ? '/' + station : '') + '?src=button';
+      return;
+    }
+    if (/^[1-4]$/.test(k)) {
+      var opt = document.querySelector('button.opt[value="' + (Number(k) - 1) + '"]');
+      if (opt) { busy = true; e.preventDefault(); opt.click(); }
+    }
+  });
+})();
+</script>`;
+}
+
+function playPage(s, { devTools, station }) {
   const n = s.notice ? `<div class="notice ${s.notice.tone}" role="status">${esc(s.notice.text)}</div>` : '';
   return layout(
     'Drona Deck',
-    `<main class="screen">${header(s)}${n}${slots(s)}${phaseBody(s)}</main>${devTools ? devBar(1) : ''}`,
+    `<main class="screen">${header(s, station)}${n}${slots(s)}${phaseBody(s)}</main>${devTools ? devBar(station || 1) : ''}${buttonScript(station)}`,
   );
 }
 

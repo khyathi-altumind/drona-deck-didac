@@ -8,6 +8,12 @@ const state = require('./state');
 const views = require('./views');
 
 const COOKIE = 'drona_sid';
+const STATION_COOKIE = 'drona_station';
+
+function addCookie(res, cookie) {
+  const prev = res.getHeader('Set-Cookie');
+  res.setHeader('Set-Cookie', prev ? [].concat(prev, cookie) : cookie);
+}
 
 function parseCookies(header = '') {
   const out = {};
@@ -51,7 +57,7 @@ function createApp(overrides = {}) {
     const sid = parseCookies(req.headers.cookie)[COOKIE];
     const loaded = sessions.load(sid, t);
     if (loaded.isNew) {
-      res.setHeader('Set-Cookie', `${COOKIE}=${loaded.session.sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
+      addCookie(res, `${COOKIE}=${loaded.session.sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
     }
     if (loaded.expired) {
       loaded.session.notice = { tone: 'info', text: 'That game timed out, so a fresh one has started.' };
@@ -70,6 +76,7 @@ function createApp(overrides = {}) {
       code: tap.code,
       set: tap.set,
       setRaw: tap.set ? undefined : tap.setRaw,
+      source: url.searchParams.get('src') === 'button' ? 'button' : 'tag',
       expired: expired || undefined,
       ua: req.headers['user-agent'],
     };
@@ -107,8 +114,16 @@ function createApp(overrides = {}) {
 
     if (method === 'GET' && (p === '/' || p === '/play')) {
       if (p === '/') return redirect(res, '/play');
+      // Each booth device is set up once with /play?set=N; button presses are then logged against that station.
+      let station = parseCookies(req.headers.cookie)[STATION_COOKIE];
+      const setParam = url.searchParams.get('set');
+      if (/^[1-3]$/.test(setParam || '')) {
+        station = setParam;
+        addCookie(res, `${STATION_COOKIE}=${station}; Path=/; SameSite=Lax; Max-Age=31536000`);
+      }
+      station = /^[1-3]$/.test(station || '') ? Number(station) : null;
       const { session: s } = loadSession(req, res, now());
-      const html = views.playPage(s, { devTools: cfg.DEV_TOOLS });
+      const html = views.playPage(s, { devTools: cfg.DEV_TOOLS, station });
       s.notice = null; // notices show once
       return send(res, 200, html);
     }

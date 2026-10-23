@@ -19,7 +19,7 @@ class TapLog {
       if (err) console.error('[tap-log] write failed:', err.message);
     });
     console.log(
-      `[tap] ${entry.ts} set=${entry.set ?? entry.setRaw ?? '-'} ${entry.path} -> ${entry.outcome}` +
+      `[tap] ${entry.ts} set=${entry.set ?? entry.setRaw ?? '-'} ${entry.path}${entry.source === 'button' ? ' [button]' : ''} -> ${entry.outcome}` +
         (entry.phase ? ` (${entry.phase}, L${entry.level})` : ''),
     );
   }

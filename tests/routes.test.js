@@ -14,11 +14,15 @@ async function boot(overrides = {}) {
 
 // A tiny browser: keeps the cookie, does not follow redirects automatically.
 function browser(base) {
-  let cookie = '';
+  const jar = new Map();
   async function req(path, opts = {}) {
+    const cookie = [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
     const res = await fetch(base + path, { redirect: 'manual', ...opts, headers: { ...(opts.headers || {}), cookie } });
-    const set = res.headers.get('set-cookie');
-    if (set) cookie = set.split(';')[0];
+    for (const c of res.headers.getSetCookie()) {
+      const [pair] = c.split(';');
+      const i = pair.indexOf('=');
+      jar.set(pair.slice(0, i), pair.slice(i + 1));
+    }
     return res;
   }
   return {
@@ -158,6 +162,35 @@ test('Rules card resets and dev tools can be switched off', async (t) => {
   assert.match(page, /The Drona Deck/);
   assert.doesNotMatch(page, /DEV TAP/);
   assert.equal((await b.get('/dev/deck')).status, 404);
+});
+
+test('call button box: station is remembered and button presses are logged as such', async (t) => {
+  const { app, base, clock, close } = await boot();
+  t.after(close);
+  const b = browser(base);
+
+  let page = await (await b.get('/play?set=2')).text();
+  assert.match(page, /Station 2/);
+  assert.match(page, /var station = 2;/);
+  page = await (await b.get('/play')).text();
+  assert.match(page, /Station 2/, 'station survives without the query string');
+  assert.match(page, /\/k\/RDY\/2/, 'dev bar uses the station set');
+
+  await b.tap('/s/SCI/2');
+  clock.t += 3000;
+  await b.tap('/p/DEP/2');
+  clock.t += 3000;
+  // What the page script requests when the READY button (R key) is pressed.
+  await b.tap('/k/RDY/2?src=button');
+  const last = app.tapLog.recent(1)[0];
+  assert.equal(last.outcome, 'ready');
+  assert.equal(last.source, 'button');
+  assert.equal(last.set, 2);
+  assert.equal(app.tapLog.recent(2)[1].source, 'tag');
+  assert.equal((await b.state()).phase, 'ANSWERING');
+
+  page = await (await b.get('/play')).text();
+  assert.match(page, /<button class="opt" name="choice" value="0">/, 'answer buttons are present for keys 1-4');
 });
 
 test('code map has all 33 tag URLs in the print-kit format', async (t) => {
