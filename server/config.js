@@ -26,4 +26,6 @@ module.exports = {
   // Simulator, code map and tap-log pages. Turn off at the booth with DEV_TOOLS=false.
   DEV_TOOLS: process.env.DEV_TOOLS !== 'false',
   LOG_FILE: process.env.LOG_FILE || path.join(__dirname, '..', 'logs', 'taps.jsonl'),
+  // Finished-hand reports, so shared report links keep working after a restart.
+  REPORT_FILE: process.env.REPORT_FILE || path.join(__dirname, '..', 'logs', 'reports.jsonl'),
 };

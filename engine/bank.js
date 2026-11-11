@@ -1,8 +1,9 @@
-// Science x Depth question bank, levels 1-6.
-// Depth ladder: 1 Recall, 2 Explain, 3 Apply, 4 Analyse, 5 Evaluate, 6 Create.
-// `answer` is the index into `options`.
+// Science x Depth question bank, levels 1-6 (general Grade 8 science).
+// Depth ladder: 1 Remember, 2 Understand, 3 Apply, 4 Analyse, 5 Evaluate, 6 Create.
+// `answer` is the index into `options`. Optional `context` is shown above the stem.
+// The other Science skills and all History items live in bank-science.js and bank-history.js.
 
-module.exports = [
+const SCIENCE_DEPTH = [
   // ---- Level 1 · Recall ----
   {
     id: 'SCI-DEP-1a', subject: 'SCI', skill: 'DEP', level: 1,
@@ -287,3 +288,5 @@ module.exports = [
     explanation: 'An aquatic plant like Hydrilla releases bubbles in light. The collected gas relights a glowing splint, which is the test for oxygen.',
   },
 ];
+
+module.exports = [...SCIENCE_DEPTH, ...require('./bank-science'), ...require('./bank-history')];

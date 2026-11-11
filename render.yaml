@@ -10,7 +10,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # Keep the simulator, code map and tap log on while testing. Set to "false" for the booth.
+      # Simulator, code map and tap-log pages are hidden. Set to "true" only for local testing.
       - key: DEV_TOOLS
-        value: "true"
+        value: "false"
       # Leave BASE_URL unset to use the Render URL. Set it once you have the final domain for the tags.

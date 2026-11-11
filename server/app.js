@@ -6,6 +6,9 @@ const { SessionStore } = require('./sessions');
 const { TapLog } = require('./tapLog');
 const state = require('./state');
 const views = require('./views');
+const { buildReport, ReportStore } = require('./report');
+
+const SCREEN_ACTIONS = new Set(['/difficulty', '/answer', '/estimate', '/goto', '/new']);
 
 const COOKIE = 'drona_sid';
 const STATION_COOKIE = 'drona_station';
@@ -41,6 +44,29 @@ function createApp(overrides = {}) {
   const now = overrides.now || Date.now;
   const sessions = new SessionStore({ idleTimeoutMs: cfg.IDLE_TIMEOUT_MS });
   const tapLog = new TapLog({ file: cfg.LOG_FILE });
+  const reports = new ReportStore({ file: cfg.REPORT_FILE });
+
+  // On-screen buttons (difficulty, answers, estimate, end screens) post here.
+  function screenAction(s, p, body) {
+    switch (p) {
+      case '/difficulty':
+        return state.chooseDifficulty(s, body.get('level'), engine);
+      case '/answer':
+        // Ignore a stale form (e.g. back button) that belongs to a different question.
+        return s.question && body.get('qid') === s.question.id
+          ? state.answer(s, Number.parseInt(body.get('choice'), 10), engine)
+          : 'answer-stale';
+      case '/estimate':
+        return state.estimate(s, Number.parseInt(body.get('n'), 10));
+      case '/goto':
+        return state.goTo(s, body.get('to'));
+      case '/new':
+        state.resetSession(s);
+        s.notice = { tone: 'info', text: 'New player. Tap a subject card to begin.' };
+        return 'new-player';
+    }
+    return 'unknown-action';
+  }
 
   function send(res, status, body, type = 'text/html; charset=utf-8', extra = {}) {
     res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', ...extra });
@@ -123,27 +149,40 @@ function createApp(overrides = {}) {
       }
       station = /^[1-3]$/.test(station || '') ? Number(station) : null;
       const { session: s } = loadSession(req, res, now());
-      const html = views.playPage(s, { devTools: cfg.DEV_TOOLS, station });
+      const report = s.reportId ? reports.get(s.reportId) : null;
+      const reportUrl = report ? `${cfg.BASE_URL}/report/${report.id}` : null;
+      const html = views.playPage(s, { devTools: cfg.DEV_TOOLS, station, report, reportUrl });
       s.notice = null; // notices show once
       return send(res, 200, html);
     }
 
-    if (method === 'POST' && (p === '/answer' || p === '/next')) {
+    if (method === 'POST' && SCREEN_ACTIONS.has(p)) {
       const t = now();
       const { session: s } = loadSession(req, res, t);
       const body = await readBody(req);
-      let outcome;
-      if (p === '/answer') {
-        // Ignore a stale form (e.g. back button) that belongs to a different question.
-        outcome = s.question && body.get('qid') === s.question.id
-          ? state.answer(s, Number.parseInt(body.get('choice'), 10))
-          : 'answer-stale';
-      } else {
-        outcome = state.next(s, engine);
-      }
       s.updatedAt = t;
+      let outcome;
+      try {
+        outcome = screenAction(s, p, body);
+      } catch (err) {
+        console.error('[engine]', err);
+        s.notice = { tone: 'warn', text: 'Couldn’t load a question just now. Please try again.' };
+        outcome = 'engine-error';
+      }
+      if (outcome === 'estimate') {
+        // The hand is finished: build the report once, so the result, class and share screens all use it.
+        s.reportId = reports.create(buildReport(s)).id;
+      }
       tapLog.add({ ts: new Date(t).toISOString(), sid: s.sid, path: p, outcome, phase: s.phase, level: s.level });
       return redirect(res, '/play');
+    }
+
+    // Shareable report: opened on the visitor's own phone from the QR code, WhatsApp or email link.
+    const reportMatch = /^\/report\/([A-Za-z0-9_-]{4,32})\/?$/.exec(p);
+    if (method === 'GET' && reportMatch) {
+      const report = reports.get(reportMatch[1]);
+      if (!report) return send(res, 404, views.reportMissingPage());
+      return send(res, 200, views.reportPage(report, { url: `${cfg.BASE_URL}/report/${report.id}` }));
     }
 
     if (method === 'GET' && p === '/health') {
@@ -199,7 +238,7 @@ function createApp(overrides = {}) {
   sweeper.unref();
   server.on('close', () => clearInterval(sweeper));
 
-  return { server, sessions, tapLog, cfg };
+  return { server, sessions, tapLog, reports, cfg };
 }
 
 module.exports = { createApp };

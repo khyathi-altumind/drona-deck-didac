@@ -5,13 +5,13 @@ const CARDS = {
   s: {
     SCI: { name: 'Science', active: true },
     ENG: { name: 'English', active: false },
-    HIS: { name: 'History', active: false },
+    HIS: { name: 'History', active: true },
   },
   p: {
     DEP: { name: 'Depth', active: true, accent: '#6E9FD6', prompt: 'How deep can they think?' },
-    STR: { name: 'Stretch', active: false, accent: '#D27E5C', prompt: 'Can they use it somewhere new?' },
-    UNT: { name: 'Untangle', active: false, accent: '#DB8F3C', prompt: 'Can they make sense of a messy problem?' },
-    PIV: { name: 'Pivot', active: false, accent: '#8DBA6B', prompt: "Can they change approach when it isn't working?" },
+    STR: { name: 'Stretch', active: true, accent: '#D27E5C', prompt: 'Can they use it somewhere new?' },
+    UNT: { name: 'Untangle', active: true, accent: '#DB8F3C', prompt: 'Can they make sense of a messy problem?' },
+    PIV: { name: 'Pivot', active: true, accent: '#8DBA6B', prompt: "Can they change approach when it isn't working?" },
   },
   k: {
     RDY: { name: 'Ready', active: true, accent: '#3E8A5C' },

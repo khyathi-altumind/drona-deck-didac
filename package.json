@@ -2,7 +2,7 @@
   "name": "drona-deck-didac",
   "version": "1.0.0",
   "private": true,
-  "description": "Drona Deck NFC card flow for the DIDAC booth (Science x Depth)",
+  "description": "Drona Deck NFC card flow for the DIDAC booth (Science and History)",
   "main": "server/index.js",
   "engines": {
     "node": ">=20"
