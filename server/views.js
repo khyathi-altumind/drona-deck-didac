@@ -70,6 +70,8 @@ h2{font-size:22px;line-height:1.2}
 .pick:hover,.pick:focus-visible{border-color:var(--gold);outline:none}
 .pick b{display:block;font-family:var(--serif);font-size:24px}
 .pick small{display:block;color:var(--muted);font-size:13px;margin-top:4px;line-height:1.4}
+.cardhint{cursor:default;border-top:4px solid var(--acc)}
+.cardhint:hover{border-color:var(--line);border-top-color:var(--acc)}
 .big.four .pick{text-align:center;padding:18px 6px}
 .big.four .pick b{font-size:34px}
 .score{font-family:var(--serif);font-size:48px;font-weight:700;line-height:1}
@@ -190,7 +192,7 @@ function slots(s) {
 function rulesList() {
   return `<ol class="rules">
   <li><b>01</b><span>Tap a subject card: Science or History.</span></li>
-  <li><b>02</b><span>Pick Easy or Tough on the screen.</span></li>
+  <li><b>02</b><span>Tap a level card: Easy or Tough.</span></li>
   <li><b>03</b><span>Tap a skill card.</span></li>
   <li><b>04</b><span>Three questions. For each one, read it, then tap your call: Ready, Assist or Pass. Then answer.</span></li>
   <li><b>05</b><span>Guess how many you got right.</span></li>
@@ -289,11 +291,8 @@ function phaseBody(s, { report, reportUrl }) {
 
     case 'DIFFICULTY':
       return `<section class="panel"><div class="eyebrow">${esc(CARDS.s[s.subject].name)} chosen</div>
-<h1>Easy or tough<span class="dot">?</span></h1>
-<form method="post" action="/difficulty" class="big two">
-  <button class="pick" name="level" value="EASY" data-key="e"><b>Easy</b><small>Warm-up questions: levels 1 to 3.</small></button>
-  <button class="pick" name="level" value="TOUGH" data-key="t"><b>Tough</b><small>Questions that stretch your thinking: levels 4 to 6.</small></button>
-</form>${s.skill ? `<p class="small" style="margin-top:12px">${esc(CARDS.p[s.skill].name)} is saved. Your hand starts as soon as you pick.</p>` : ''}</section>`;
+<h1>Now tap a level card<span class="dot">.</span></h1>
+<div class="big two">${['EASY', 'TOUGH'].map((k) => `<div class="pick cardhint" style="--acc:${CARDS.d[k].accent}"><b>${esc(CARDS.d[k].name)}</b><small>${esc(CARDS.d[k].prompt)}</small></div>`).join('')}</div>${s.skill ? `<p class="small" style="margin-top:12px">${esc(CARDS.p[s.skill].name)} is saved. Your hand starts as soon as you tap a level card.</p>` : ''}</section>`;
 
     case 'SKILL':
       return `<section class="panel"><div class="eyebrow">${esc(CARDS.s[s.subject].name)} · ${esc(BANDS[s.difficulty].name)}</div>
@@ -392,7 +391,7 @@ function shareScript() {
 
 function devBar(set) {
   const links = [
-    ['s', 'SCI', 'Science'], ['s', 'HIS', 'History'], ['p', 'DEP', 'Depth'], ['p', 'STR', 'Stretch'], ['p', 'UNT', 'Untangle'], ['p', 'PIV', 'Pivot'],
+    ['s', 'SCI', 'Science'], ['s', 'HIS', 'History'], ['d', 'EASY', 'Easy'], ['d', 'TOUGH', 'Tough'], ['p', 'DEP', 'Depth'], ['p', 'STR', 'Stretch'], ['p', 'UNT', 'Untangle'], ['p', 'PIV', 'Pivot'],
     ['k', 'RDY', 'Ready'], ['k', 'AST', 'Assist'], ['k', 'PAS', 'Pass'], ['r', 'R', 'Rules'], ['s', 'ENG', 'English (off)'],
   ]
     .map(([k, c, n]) => `<a href="${tapPath(k, c, set)}">${esc(n)}</a>`)
@@ -402,7 +401,7 @@ function devBar(set) {
 
 // The call button box is a USB/Bluetooth keyboard: R/A/P (or F13/F14/F15) send Ready/Assist/Pass
 // through the same /k/ routes as the chips. Other keys press the on-screen button with a matching
-// data-key: E/T for Easy/Tough, 1-4 for an answer, 0-3 for the estimate.
+// data-key: 1-4 for an answer, 0-3 for the estimate. Easy/Tough are NFC cards only.
 function buttonScript(station) {
   return `<script>
 (function () {
@@ -523,6 +522,7 @@ select{font:inherit;background:var(--panel);color:var(--ivory);border:1px solid 
     <select id="set"><option value="1">Set 1 · Station 1</option><option value="2">Set 2 · Station 2</option><option value="3">Set 3 · Spare</option><option value="">No set number</option></select>
   </label>
   ${group('s', 'Subject cards')}
+  ${group('d', 'Level cards')}
   ${group('p', 'Skill cards')}
   ${group('k', 'Call chips')}
   ${group('r', 'Rules card')}

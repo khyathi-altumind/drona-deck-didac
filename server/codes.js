@@ -7,6 +7,10 @@ const CARDS = {
     ENG: { name: 'English', active: false },
     HIS: { name: 'History', active: true },
   },
+  d: {
+    EASY: { name: 'Easy', active: true, accent: '#8DBA6B', prompt: 'Warm-up questions: levels 1 to 3.' },
+    TOUGH: { name: 'Tough', active: true, accent: '#D27E5C', prompt: 'Questions that stretch your thinking: levels 4 to 6.' },
+  },
   p: {
     DEP: { name: 'Depth', active: true, accent: '#6E9FD6', prompt: 'How deep can they think?' },
     STR: { name: 'Stretch', active: true, accent: '#D27E5C', prompt: 'Can they use it somewhere new?' },
@@ -23,10 +27,10 @@ const CARDS = {
   },
 };
 
-const KIND_LABEL = { s: 'Subject', p: 'Skill', k: 'Call chip', r: 'Rules' };
+const KIND_LABEL = { s: 'Subject', d: 'Level', p: 'Skill', k: 'Call chip', r: 'Rules' };
 const SETS = [1, 2, 3];
 
-const TAP_RE = /^\/([spk])\/([A-Za-z]+)(?:\/([^/]*))?\/?$/;
+const TAP_RE = /^\/([sdpk])\/([A-Za-z]+)(?:\/([^/]*))?\/?$/;
 const RULES_RE = /^\/r(?:\/([^/]*))?\/?$/;
 
 function parseSet(raw) {
@@ -51,10 +55,11 @@ function tapPath(kind, code, set) {
   return set ? `${base}/${set}` : base;
 }
 
-// All 33 tag/QR rows in the same order as the print kit.
+// All 39 tag/QR rows in the same order as the print kit.
 function codeMap(baseUrl) {
   const order = [
     ['s', 'SCI'], ['s', 'ENG'], ['s', 'HIS'],
+    ['d', 'EASY'], ['d', 'TOUGH'],
     ['p', 'DEP'], ['p', 'STR'], ['p', 'UNT'], ['p', 'PIV'],
     ['k', 'RDY'], ['k', 'AST'], ['k', 'PAS'],
     ['r', 'R'],

@@ -44,7 +44,7 @@ async function playHandCorrectly(b) {
   }
 }
 
-test('full booth flow: subject → Easy/Tough → skill → 3 questions → estimate → result → class → share', async (t) => {
+test('full booth flow: subject → Easy/Tough card → skill → 3 questions → estimate → result → class → share', async (t) => {
   const { app, base, clock, close } = await boot();
   t.after(close);
   const b = browser(base, clock);
@@ -52,9 +52,12 @@ test('full booth flow: subject → Easy/Tough → skill → 3 questions → esti
   let res = await b.tap('/s/HIS/1');
   assert.equal(res.status, 303);
   assert.equal(res.headers.get('location'), '/play');
-  assert.match(await b.page(), /Easy or tough/);
+  let first = await b.page();
+  assert.match(first, /Now tap a level card/);
+  assert.doesNotMatch(first, /<button[^>]*value="(EASY|TOUGH)"/, 'no on-screen level buttons');
+  assert.equal((await b.post('/difficulty', { level: 'EASY' })).status, 404, 'level cannot be picked on screen');
 
-  await b.post('/difficulty', { level: 'EASY' });
+  await b.tap('/d/EASY/1');
   assert.match(await b.page(), /Now tap a skill card/);
 
   await b.tap('/p/DEP/1');
@@ -102,7 +105,7 @@ test('the shared report opens on another device without the booth cookie', async
   t.after(close);
   const b = browser(base, clock);
   await b.tap('/s/SCI/1');
-  await b.post('/difficulty', { level: 'TOUGH' });
+  await b.tap('/d/TOUGH/1');
   await b.tap('/p/PIV/1');
   await playHandCorrectly(b);
   await b.post('/estimate', { n: '3' });
@@ -127,7 +130,7 @@ test('a skill card tapped before the level is remembered', async (t) => {
   await b.tap('/s/SCI/1');
   await b.tap('/p/UNT/1');
   assert.match(await b.page(), /Untangle saved/);
-  await b.post('/difficulty', { level: 'EASY' });
+  await b.tap('/d/EASY/1');
   const s = await b.state();
   assert.equal(s.phase, 'QUESTION');
   assert.equal(s.question.skill, 'UNT');
@@ -138,14 +141,14 @@ test('set number is logged on every tap but does not change the flow', async (t)
   t.after(close);
   const b = browser(base, clock);
   await b.tap('/s/SCI/2');
-  await b.post('/difficulty', { level: 'EASY' });
+  await b.tap('/d/EASY/2');
   await b.tap('/p/DEP/3');
   await b.tap('/k/AST'); // no set number at all
   await b.tap('/k/PAS/x9'); // garbage set number
   const taps = app.tapLog.recent(10).reverse().filter((e) => e.kind);
-  assert.deepEqual(taps.map((e) => e.set ?? null), [2, 3, null, null]);
-  assert.equal(taps[3].setRaw, 'x9');
-  assert.deepEqual(taps.map((e) => e.outcome), ['subject', 'hand-start', 'assist', 'pass']);
+  assert.deepEqual(taps.map((e) => e.set ?? null), [2, 2, 3, null, null]);
+  assert.equal(taps[4].setRaw, 'x9');
+  assert.deepEqual(taps.map((e) => e.outcome), ['subject', 'difficulty', 'hand-start', 'assist', 'pass']);
 });
 
 test('repeat reads of the same tag within the debounce window are ignored', async (t) => {
@@ -153,7 +156,7 @@ test('repeat reads of the same tag within the debounce window are ignored', asyn
   t.after(close);
   const b = browser(base, clock);
   await b.tap('/s/SCI/1');
-  await b.post('/difficulty', { level: 'EASY' });
+  await b.tap('/d/EASY/1');
   await b.tap('/p/DEP/1');
   await b.tap('/k/PAS/1');
   const q2 = (await b.state()).question.id;
@@ -183,7 +186,7 @@ test('codes are case-insensitive and trailing slashes are fine', async (t) => {
   t.after(close);
   const b = browser(base, clock);
   await b.tap('/s/his/1/');
-  await b.post('/difficulty', { level: 'EASY' });
+  await b.tap('/d/EASY/1');
   await b.tap('/p/Str/1');
   assert.equal((await b.state()).phase, 'QUESTION');
 });
@@ -193,7 +196,7 @@ test('idle timeout starts a fresh game', async (t) => {
   t.after(close);
   const b = browser(base, clock);
   await b.tap('/s/SCI/1');
-  await b.post('/difficulty', { level: 'EASY' });
+  await b.tap('/d/EASY/1');
   clock.t += 61_000;
   await b.tap('/s/HIS/1');
   const s = await b.state();
@@ -207,7 +210,7 @@ test('stale answer forms are ignored', async (t) => {
   t.after(close);
   const b = browser(base, clock);
   await b.tap('/s/SCI/1');
-  await b.post('/difficulty', { level: 'EASY' });
+  await b.tap('/d/EASY/1');
   await b.tap('/p/DEP/1');
   await b.tap('/k/RDY/1');
   await b.post('/answer', { qid: 'SCI-DEP-nope', choice: '0' });
@@ -244,9 +247,8 @@ test('call button box: station is remembered and button presses are logged as su
 
   await b.tap('/s/SCI/2');
   page = await b.page();
-  assert.match(page, /data-key="e"/);
-  assert.match(page, /data-key="t"/);
-  await b.post('/difficulty', { level: 'EASY' });
+  assert.doesNotMatch(page, /data-key="[et]"/, 'no keyboard shortcut for the level');
+  await b.tap('/d/EASY/2');
   await b.tap('/p/DEP/2');
   // What the page script requests when the READY button (R key) is pressed.
   await b.tap('/k/RDY/2?src=button');
@@ -260,12 +262,14 @@ test('call button box: station is remembered and button presses are logged as su
   assert.match(page, /<button class="opt" name="choice" value="0" data-key="1">/, 'answer buttons are present for keys 1-4');
 });
 
-test('code map has all 33 tag URLs in the print-kit format, with Science and History live', async (t) => {
+test('code map has all 39 tag URLs in the print-kit format, with Science and History live', async (t) => {
   const rows = codeMap('https://drona.example');
-  assert.equal(rows.length, 33);
+  assert.equal(rows.length, 39);
   const urls = rows.map((r) => r.url);
   assert.ok(urls.includes('https://drona.example/s/SCI/1'));
   assert.ok(urls.includes('https://drona.example/s/HIS/1'));
+  assert.ok(urls.includes('https://drona.example/d/EASY/1'));
+  assert.ok(urls.includes('https://drona.example/d/TOUGH/3'));
   assert.ok(urls.includes('https://drona.example/p/PIV/2'));
   assert.ok(urls.includes('https://drona.example/k/RDY/3'));
   assert.ok(urls.includes('https://drona.example/r/1'));
@@ -276,7 +280,7 @@ test('code map has all 33 tag URLs in the print-kit format, with Science and His
   const { base, close } = await boot();
   t.after(close);
   const csv = await (await fetch(base + '/dev/codes.csv')).text();
-  assert.equal(csv.trim().split('\n').length, 34);
+  assert.equal(csv.trim().split('\n').length, 40);
 });
 
 function escapeHtml(s) {

@@ -8,7 +8,7 @@ const state = require('./state');
 const views = require('./views');
 const { buildReport, ReportStore } = require('./report');
 
-const SCREEN_ACTIONS = new Set(['/difficulty', '/answer', '/estimate', '/goto', '/new']);
+const SCREEN_ACTIONS = new Set(['/answer', '/estimate', '/goto', '/new']);
 
 const COOKIE = 'drona_sid';
 const STATION_COOKIE = 'drona_station';
@@ -46,11 +46,9 @@ function createApp(overrides = {}) {
   const tapLog = new TapLog({ file: cfg.LOG_FILE });
   const reports = new ReportStore({ file: cfg.REPORT_FILE });
 
-  // On-screen buttons (difficulty, answers, estimate, end screens) post here.
+  // On-screen buttons (answers, estimate, end screens) post here. Easy/Tough are NFC cards only.
   function screenAction(s, p, body) {
     switch (p) {
-      case '/difficulty':
-        return state.chooseDifficulty(s, body.get('level'), engine);
       case '/answer':
         // Ignore a stale form (e.g. back button) that belongs to a different question.
         return s.question && body.get('qid') === s.question.id

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { newSession, applyTap, chooseDifficulty, answer, estimate, goTo, HAND_SIZE } = require('../server/state');
+const { newSession, applyTap, answer, estimate, goTo, HAND_SIZE } = require('../server/state');
 const { parseTapPath } = require('../server/codes');
 const { buildReport, compareWithClass, sampleClass } = require('../server/report');
 const engine = require('../engine');
@@ -9,10 +9,10 @@ const tap = (path) => parseTapPath(path);
 const play = () => newSession('t', 0);
 const wrongChoice = (q) => (q.answer + 1) % q.options.length;
 
-// Subject → difficulty → skill, ready for question 1.
+// Subject → level card → skill, ready for question 1.
 function toQuestion(s, { subject = 'SCI', skill = 'DEP', level = 'EASY' } = {}) {
   applyTap(s, tap(`/s/${subject}/1`), engine);
-  chooseDifficulty(s, level, engine);
+  applyTap(s, tap(`/d/${level}/1`), engine);
   applyTap(s, tap(`/p/${skill}/1`), engine);
   return s;
 }
@@ -27,11 +27,11 @@ function playHand(s, plan) {
   return s;
 }
 
-test('flow follows the booth order: subject → Easy/Tough → skill → question', () => {
+test('flow follows the booth order: subject → Easy/Tough card → skill → question', () => {
   const s = play();
   assert.equal(applyTap(s, tap('/s/HIS/1'), engine), 'subject');
   assert.equal(s.phase, 'DIFFICULTY');
-  assert.equal(chooseDifficulty(s, 'TOUGH', engine), 'difficulty');
+  assert.equal(applyTap(s, tap('/d/TOUGH/1'), engine), 'difficulty');
   assert.equal(s.phase, 'SKILL');
   assert.equal(applyTap(s, tap('/p/UNT/1'), engine), 'hand-start');
   assert.equal(s.phase, 'QUESTION');
@@ -51,17 +51,39 @@ test('a skill card tapped early is remembered and the hand starts once the level
   assert.equal(s.phase, 'IDLE');
   applyTap(s, tap('/s/SCI/1'), engine);
   assert.equal(s.phase, 'DIFFICULTY');
-  assert.equal(chooseDifficulty(s, 'EASY', engine), 'hand-start');
+  assert.equal(applyTap(s, tap('/d/EASY/1'), engine), 'hand-start');
   assert.equal(s.phase, 'QUESTION');
   assert.equal(s.question.skill, 'STR');
 });
 
-test('difficulty is only accepted on the difficulty screen and must be Easy or Tough', () => {
+test('level cards: refused before a subject, can be switched before the skill, locked during a hand', () => {
   const s = play();
-  assert.equal(chooseDifficulty(s, 'EASY', engine), 'difficulty-ignored');
+  assert.equal(applyTap(s, tap('/d/EASY/1'), engine), 'difficulty-too-early');
+  assert.equal(s.phase, 'IDLE');
+  assert.match(s.notice.text, /subject card/);
+  assert.equal(parseTapPath('/d/MEDIUM/1').card, null, 'only Easy and Tough exist');
+
   applyTap(s, tap('/s/SCI/1'), engine);
-  assert.equal(chooseDifficulty(s, 'MEDIUM', engine), 'difficulty-invalid');
-  assert.equal(s.phase, 'DIFFICULTY');
+  applyTap(s, tap('/d/EASY/1'), engine);
+  assert.equal(applyTap(s, tap('/d/TOUGH/1'), engine), 'difficulty');
+  assert.equal(s.phase, 'SKILL');
+  assert.equal(s.difficulty, 'TOUGH');
+
+  applyTap(s, tap('/p/DEP/1'), engine);
+  assert.equal(applyTap(s, tap('/d/EASY/1'), engine), 'locked');
+  assert.equal(s.difficulty, 'TOUGH');
+  assert.equal(s.question.level, 5);
+});
+
+test('after a hand, a level card changes the level and waits for a skill card', () => {
+  const s = toQuestion(play(), { level: 'EASY' });
+  playHand(s, ['right', 'right', 'right']);
+  estimate(s, 3);
+  assert.equal(applyTap(s, tap('/d/TOUGH/1'), engine), 'difficulty');
+  assert.equal(s.phase, 'SKILL');
+  assert.equal(applyTap(s, tap('/p/PIV/1'), engine), 'hand-start');
+  assert.equal(s.question.level, 5);
+  assert.equal(s.subject, 'SCI');
 });
 
 test('call chips before a question are refused with a helpful prompt', () => {

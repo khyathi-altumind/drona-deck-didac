@@ -8,7 +8,7 @@ write the URLs onto the tags.
 No dependencies. Needs Node 20+.
 
 ```
-npm test        # 34 automated tests (state machine + real HTTP flow)
+npm test        # 35 automated tests (state machine + real HTTP flow)
 npm start       # dev mode: player + simulator + code map + tap log
 npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 ```
@@ -18,6 +18,7 @@ npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 | Card | Path | At this booth |
 |---|---|---|
 | Science, History | `/s/SCI/<set>`, `/s/HIS/<set>` | Live |
+| Easy, Tough (level cards) | `/d/EASY/<set>`, `/d/TOUGH/<set>` | Live: the only way to pick the level |
 | Depth, Stretch, Untangle, Pivot | `/p/DEP/<set>`, `/p/STR/<set>`, `/p/UNT/<set>`, `/p/PIV/<set>` | Live |
 | Ready / Assist / Pass | `/k/RDY/<set>`, `/k/AST/<set>`, `/k/PAS/<set>` | Live |
 | Rules | `/r/<set>` | Live: shows rules, starts a new game |
@@ -28,7 +29,7 @@ npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 ## Game flow (one "Quick Hand")
 
 1. **Tap a subject card**: Science or History.
-2. **Pick Easy or Tough** on the screen. Easy plays levels 1–3, Tough plays levels 4–6.
+2. **Tap a level card**: Easy or Tough (NFC only, no screen buttons). Easy plays levels 1–3, Tough plays levels 4–6.
 3. **Tap a skill card**: Depth, Stretch, Untangle or Pivot. A skill card tapped earlier is remembered,
    so the hand starts as soon as the level is picked.
 4. **Three questions.** Each one shows first, then the visitor taps a call chip:
@@ -98,7 +99,7 @@ The tap log and the saved reports reset on every deploy or restart there, so sha
 2. Download `/dev/codes.csv` (run once with dev tools on and the final `BASE_URL`) for the URL list.
 3. In **NFC Tools** (Android/iOS), use *Write → Add a record → URL* with the card's URL. Read it back to check, then *Other → Lock tag*.
    Lock only after the read-back works, because locking can't be undone.
-4. Smoke test per set: Rules → History → Easy → Depth → three calls → estimate → result → class → share (scan the QR), on one Android and one iPhone.
+4. Smoke test per set: Rules → History → Easy card → Depth → three calls → estimate → result → class → share (scan the QR), on one Android and one iPhone.
    In `/dev/log` (or `logs/taps.jsonl`) every line should show the right `set`.
 
 ## Layout

@@ -1,13 +1,13 @@
 // Game state machine for one device session: one "Quick Hand" of three questions.
 //
-//   IDLE --subject card--> DIFFICULTY --Easy|Tough--> SKILL --skill card--> QUESTION
+//   IDLE --subject card--> DIFFICULTY --Easy|Tough card--> SKILL --skill card--> QUESTION
 //   QUESTION --Ready--> ANSWERING --answer--> next QUESTION (3 in total)
 //   QUESTION --Assist--> ANSWERING (hint shown) --answer--> next QUESTION
 //   QUESTION --Pass--> next QUESTION (the skip counts as one of the three)
 //   after the third question --> ESTIMATE --how many correct?--> RESULT --> CLASS --> SHARE
 //   any --Rules card--> IDLE (fresh game)
 //
-// A skill card tapped early is remembered, so the hand starts as soon as the difficulty is picked.
+// A skill card tapped early is remembered, so the hand starts as soon as the level card is tapped.
 // Results stay hidden until the visitor has estimated their score, so the estimate is honest.
 // Every function mutates the session and returns an outcome string for the tap log.
 
@@ -89,6 +89,7 @@ function applyTap(s, tap, engine) {
   }
 
   if (kind === 's') return selectSubject(s, code, card);
+  if (kind === 'd') return selectDifficulty(s, code, card, engine);
   if (kind === 'p') return selectSkill(s, code, card, engine);
   return callChip(s, code, card, engine);
 }
@@ -132,7 +133,7 @@ function selectSkill(s, code, card, engine) {
     return 'skill-early';
   }
   if (s.phase === 'DIFFICULTY') {
-    notice(s, 'info', `${card.name} saved. Now pick Easy or Tough.`);
+    notice(s, 'info', `${card.name} saved. Now tap the Easy or Tough card.`);
     return 'skill-early';
   }
   // SKILL phase, or a finished hand: play a new hand with the same subject and difficulty.
@@ -142,10 +143,29 @@ function selectSkill(s, code, card, engine) {
   return 'hand-start';
 }
 
-function chooseDifficulty(s, difficulty, engine) {
-  if (s.phase !== 'DIFFICULTY') return 'difficulty-ignored';
-  if (!BANDS[difficulty]) return 'difficulty-invalid';
-  s.difficulty = difficulty;
+function selectDifficulty(s, code, card, engine) {
+  if (HAND_PHASES.includes(s.phase)) {
+    notice(s, 'info', `Finish this hand first: question ${questionNumber(s)} of ${HAND_SIZE}. The Rules card starts over.`);
+    return 'locked';
+  }
+  if (s.phase === 'ESTIMATE') {
+    notice(s, 'info', 'Almost done. How many do you think you got right?');
+    return 'locked';
+  }
+  if (s.phase === 'IDLE') {
+    notice(s, 'warn', `${card.name} is a level card. First tap a subject card: Science or History.`);
+    return 'difficulty-too-early';
+  }
+
+  s.difficulty = code;
+  // After a hand, or before the skill card: change the level and wait for a skill card.
+  if (DONE_PHASES.includes(s.phase) || s.phase === 'SKILL') {
+    const replay = s.phase !== 'SKILL';
+    s.phase = 'SKILL';
+    notice(s, 'info', replay ? `${card.name} it is. Tap a skill card to play again.` : `Switched to ${card.name}. Now tap a skill card.`);
+    return 'difficulty';
+  }
+  // DIFFICULTY phase: a skill card tapped early starts the hand straight away.
   if (s.skill) {
     startHand(s, engine);
     s.notice = null;
@@ -192,7 +212,7 @@ function callChip(s, code, card, engine) {
 }
 
 function callPrompt(s) {
-  if (s.phase === 'DIFFICULTY') return 'First pick Easy or Tough.';
+  if (s.phase === 'DIFFICULTY') return 'First tap the Easy or Tough card.';
   if (s.phase === 'SKILL') return 'First tap a skill card.';
   return 'First tap a subject card.';
 }
@@ -253,4 +273,4 @@ function goTo(s, phase) {
   return `goto-${phase.toLowerCase()}`;
 }
 
-module.exports = { newSession, resetSession, applyTap, chooseDifficulty, answer, estimate, goTo, HAND_SIZE };
+module.exports = { newSession, resetSession, applyTap, answer, estimate, goTo, HAND_SIZE };
