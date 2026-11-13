@@ -29,13 +29,13 @@ function playHand(s, plan) {
 
 test('flow follows the booth order: subject → Easy/Tough card → skill → question', () => {
   const s = play();
-  assert.equal(applyTap(s, tap('/s/HIS/1'), engine), 'subject');
+  assert.equal(applyTap(s, tap('/s/SCI/1'), engine), 'subject');
   assert.equal(s.phase, 'DIFFICULTY');
   assert.equal(applyTap(s, tap('/d/TOUGH/1'), engine), 'difficulty');
   assert.equal(s.phase, 'SKILL');
   assert.equal(applyTap(s, tap('/p/UNT/1'), engine), 'hand-start');
   assert.equal(s.phase, 'QUESTION');
-  assert.equal(s.question.subject, 'HIS');
+  assert.equal(s.question.subject, 'SCI');
   assert.equal(s.question.skill, 'UNT');
   assert.equal(s.question.level, 5, 'Tough starts in the middle of levels 4-6');
 });
@@ -106,7 +106,7 @@ test('English stays off and leaves the game untouched', () => {
 test('subject and skill cards are locked during a hand', () => {
   const s = toQuestion(play());
   const qid = s.question.id;
-  assert.equal(applyTap(s, tap('/s/HIS/1'), engine), 'locked');
+  assert.equal(applyTap(s, tap('/s/CIV/1'), engine), 'locked');
   assert.equal(applyTap(s, tap('/p/PIV/1'), engine), 'locked');
   assert.equal(s.question.id, qid);
   assert.equal(s.subject, 'SCI');
@@ -135,7 +135,7 @@ test('a pass counts as one of the three questions', () => {
 
 test('no question repeats within a hand', () => {
   for (let i = 0; i < 30; i++) {
-    const s = toQuestion(play(), { subject: i % 2 ? 'HIS' : 'SCI', skill: ['DEP', 'STR', 'UNT', 'PIV'][i % 4], level: i % 3 ? 'EASY' : 'TOUGH' });
+    const s = toQuestion(play(), { subject: i % 2 ? 'CIV' : 'SCI', skill: ['DEP', 'STR', 'UNT', 'PIV'][i % 4], level: i % 3 ? 'EASY' : 'TOUGH' });
     playHand(s, ['assist-right', 'assist-right', 'assist-right']);
     const ids = s.hand.map((h) => h.question.id);
     assert.equal(new Set(ids).size, HAND_SIZE, ids.join(','));
@@ -191,12 +191,12 @@ test('end screens: result → class → share, only after the hand', () => {
 });
 
 test('after a hand, a skill card plays again and a subject card starts fresh', () => {
-  const s = toQuestion(play(), { subject: 'HIS', level: 'TOUGH' });
+  const s = toQuestion(play(), { subject: 'SCI', level: 'TOUGH' });
   playHand(s, ['right', 'right', 'right']);
   estimate(s, 2);
   assert.equal(applyTap(s, tap('/p/STR/1'), engine), 'hand-start');
   assert.equal(s.phase, 'QUESTION');
-  assert.equal(s.subject, 'HIS');
+  assert.equal(s.subject, 'SCI');
   assert.equal(s.difficulty, 'TOUGH');
   assert.equal(s.hand.length, 0);
 
@@ -226,7 +226,7 @@ test('answers outside ANSWERING or out of range are ignored', () => {
 });
 
 test('report: score, calibration, call messages and class comparison', () => {
-  const s = toQuestion(play(), { subject: 'HIS', skill: 'PIV' });
+  const s = toQuestion(play(), { subject: 'CIV', skill: 'PIV' });
   playHand(s, ['right', 'assist-right', 'pass']);
   estimate(s, 3);
   const r = buildReport(s);
@@ -234,7 +234,7 @@ test('report: score, calibration, call messages and class comparison', () => {
   assert.equal(r.points, 3);
   assert.equal(r.calibration, 'over');
   assert.deepEqual(r.calls, { RDY: 1, AST: 1, PAS: 1 });
-  assert.equal(r.subject.name, 'History');
+  assert.equal(r.subject.name, 'Civics');
   assert.equal(r.skill.name, 'Pivot');
   assert.equal(r.difficulty.name, 'Easy');
   assert.match(r.questions[0].message, /Right call/);
@@ -265,13 +265,13 @@ test('options are shuffled but the answer always points at the right option', ()
   assert.ok(positions.size > 1, 'the right answer moves around');
 });
 
-test('question bank: Science and History cover every skill and level with valid items', () => {
+test('question bank: Science, Civics and History cover every skill and level with valid items', () => {
   const bank = require('../engine/bank');
-  for (const subject of ['SCI', 'HIS']) {
+  for (const subject of ['SCI', 'CIV', 'HIS']) {
     for (const skill of ['DEP', 'STR', 'UNT', 'PIV']) {
       for (let level = 1; level <= engine.MAX_LEVEL; level++) {
         const qs = bank.filter((q) => q.subject === subject && q.skill === skill && q.level === level);
-        assert.ok(qs.length >= 2, `${subject}/${skill}/L${level} needs at least 2 questions`);
+        assert.ok(qs.length >= 1, `${subject}/${skill}/L${level} needs a question`);
         for (const q of qs) {
           assert.ok(q.options.length >= 2 && q.options.length <= 4, q.id);
           assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, q.id);
@@ -292,4 +292,100 @@ test('History practice sources are always labelled as written for this activity'
       assert.match(text, /written for this activity/, q.id);
     }
   }
+});
+
+// ---------- Civics: same cards as Science, fixed ladder per band ----------
+
+test('Civics: Easy plays questions 1 → 2 → 3 and Tough plays 4 → 5 → 6, whatever the answers', () => {
+  for (const [level, expected] of [['EASY', [1, 2, 3]], ['TOUGH', [4, 5, 6]]]) {
+    for (const plan of [['right', 'right', 'right'], ['wrong', 'wrong', 'wrong'], ['assist-right', 'pass', 'wrong']]) {
+      const s = play();
+      assert.equal(applyTap(s, tap('/s/CIV/1'), engine), 'subject');
+      assert.equal(s.phase, 'DIFFICULTY', 'Civics asks for the level card like Science');
+      assert.equal(applyTap(s, tap(`/d/${level}/1`), engine), 'difficulty');
+      assert.equal(applyTap(s, tap('/p/DEP/1'), engine), 'hand-start');
+      const levels = [];
+      for (const step of plan) {
+        levels.push(s.question.level);
+        assert.equal(s.question.subject, 'CIV');
+        playHand(s, [step]);
+      }
+      assert.deepEqual(levels, expected, `${level} ${plan.join(',')}`);
+      assert.equal(s.phase, 'ESTIMATE');
+    }
+  }
+});
+
+test('Civics: after a hand, a level card switches band and a skill card replays', () => {
+  const s = toQuestion(play(), { subject: 'CIV', skill: 'STR', level: 'EASY' });
+  playHand(s, ['right', 'right', 'right']);
+  estimate(s, 3);
+  assert.equal(applyTap(s, tap('/d/TOUGH/1'), engine), 'difficulty');
+  assert.equal(applyTap(s, tap('/p/PIV/1'), engine), 'hand-start');
+  assert.equal(s.question.id, 'CIV-PIV-L4');
+});
+
+test('History cards are not live at this booth', () => {
+  const s = play();
+  assert.equal(applyTap(s, tap('/s/HIS/1'), engine), 'inactive');
+  assert.equal(s.phase, 'IDLE');
+  assert.match(s.notice.text, /Science or Civics/);
+});
+
+// Pool items: one per level per skill, single-answer multiple choice, traced to source facts.
+function checkPool(subject, idPattern) {
+  const items = require('../engine/bank').filter((q) => q.subject === subject && idPattern.test(q.id));
+  assert.equal(items.length, 24, subject);
+  for (const skill of ['DEP', 'STR', 'UNT', 'PIV']) {
+    assert.deepEqual(items.filter((q) => q.skill === skill).map((q) => q.level), [1, 2, 3, 4, 5, 6], `${subject} ${skill}`);
+  }
+  for (const q of items) {
+    assert.equal(q.options.length, 4, q.id);
+    assert.equal(new Set(q.options).size, 4, `${q.id} has duplicate options`);
+    assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < 4, q.id);
+    assert.ok(q.stem && q.hint && q.explanation && q.distractorLogic && q.competency, q.id);
+    assert.ok(q.sourceFacts.length && q.sourceFacts.every((f) => /^SF\d+$/.test(f)), q.id);
+    assert.equal(q.review, 'approved', q.id);
+  }
+}
+
+test('Civics pool: all 24 questions, valid multiple choice, traced to source facts', () => {
+  checkPool('CIV', /^CIV-/);
+});
+
+test('Science Forces pool: all 24 questions, valid multiple choice, traced to source facts', () => {
+  checkPool('SCI', /^SCI-[A-Z]{3}-L\d$/);
+});
+
+test('Science plays only the Forces pool: no older Science question is in the active bank', () => {
+  const sci = require('../engine/bank').filter((q) => q.subject === 'SCI');
+  assert.equal(sci.length, 24);
+  assert.ok(sci.every((q) => /^SCI-[A-Z]{3}-L\d$/.test(q.id) && q.poolId), sci.map((q) => q.id).join(','));
+});
+
+test('Science stays adaptive inside its band, with three different Forces questions on every answer path', () => {
+  const steps = ['right', 'wrong', 'assist-right', 'pass'];
+  for (const level of ['EASY', 'TOUGH']) {
+    const band = engine.BANDS[level];
+    for (const skill of ['DEP', 'STR', 'UNT', 'PIV']) {
+      for (const a of steps) for (const b of steps) for (const c of steps) {
+        const s = toQuestion(play(), { subject: 'SCI', skill, level });
+        playHand(s, [a, b, c]);
+        const qs = s.hand.map((h) => h.question);
+        assert.equal(new Set(qs.map((q) => q.id)).size, 3, `${level} ${skill} ${a},${b},${c}`);
+        assert.ok(qs.every((q) => q.poolId && q.level >= band.min && q.level <= band.max), `${level} ${skill} ${a},${b},${c}`);
+      }
+    }
+  }
+});
+
+test('Science levels still move: Ready+right climbs from the middle of the band', () => {
+  const s = toQuestion(play(), { subject: 'SCI', skill: 'DEP', level: 'EASY' });
+  assert.equal(s.question.level, 2);
+  playHand(s, ['right']);
+  assert.equal(s.question.level, 3);
+  const t = toQuestion(play(), { subject: 'SCI', skill: 'DEP', level: 'TOUGH' });
+  assert.equal(t.question.level, 5);
+  playHand(t, ['wrong']);
+  assert.equal(t.question.level, 4);
 });

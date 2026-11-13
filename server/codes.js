@@ -5,7 +5,9 @@ const CARDS = {
   s: {
     SCI: { name: 'Science', active: true },
     ENG: { name: 'English', active: false },
-    HIS: { name: 'History', active: true },
+    CIV: { name: 'Civics', active: true },
+    // History is not played at this booth (replaced by Civics). Kept so a stray History tag gets a clear message.
+    HIS: { name: 'History', active: false },
   },
   d: {
     EASY: { name: 'Easy', active: true, accent: '#8DBA6B', prompt: 'Warm-up questions: levels 1 to 3.' },
@@ -55,10 +57,11 @@ function tapPath(kind, code, set) {
   return set ? `${base}/${set}` : base;
 }
 
-// All 39 tag/QR rows in the same order as the print kit.
+// All 39 tag/QR rows in the same order as the print kit. The third subject slot (History in print
+// kit v2) is Civics at this booth, so that card needs reprinting as Civics.
 function codeMap(baseUrl) {
   const order = [
-    ['s', 'SCI'], ['s', 'ENG'], ['s', 'HIS'],
+    ['s', 'SCI'], ['s', 'ENG'], ['s', 'CIV'],
     ['d', 'EASY'], ['d', 'TOUGH'],
     ['p', 'DEP'], ['p', 'STR'], ['p', 'UNT'], ['p', 'PIV'],
     ['k', 'RDY'], ['k', 'AST'], ['k', 'PAS'],

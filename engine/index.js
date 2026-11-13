@@ -19,6 +19,14 @@ const BANDS = {
   TOUGH: { name: 'Tough', min: 4, max: 6, start: 5 },
 };
 
+// Subjects with a fixed ladder instead of the adaptive one. Civics has exactly one question per level,
+// so moving up and down would repeat questions. Instead every hand serves its band in order:
+// Easy = questions 1 → 2 → 3, Tough = questions 4 → 5 → 6.
+const SUBJECT_PLANS = {
+  CIV: { EASY: [1, 2, 3], TOUGH: [4, 5, 6] },
+};
+const planFor = (subject, difficulty) => (SUBJECT_PLANS[subject] || {})[difficulty] || null;
+
 function levelName(skill, level) {
   return (SKILL_LEVELS[skill] || [])[level - 1] || '';
 }
@@ -33,12 +41,17 @@ function generateQuestion({ subject, skill, level, seenIds = [], handIds = [], m
   const at = (l) => BANK.filter((q) => q.subject === subject && q.skill === skill && q.level === l);
   const pool = at(level);
   if (!pool.length) throw new Error(`No questions for ${subject}/${skill}/L${level}`);
-  const neighbours = [level - 1, level + 1].filter((l) => l >= min && l <= max).flatMap(at);
+  // Nearest other level in the band that still has a question unused this hand. With one question per
+  // level (the Forces pool), this keeps a 3-question hand inside a 3-level band free of repeats.
+  let nearest = [];
+  for (let d = 1; d <= max - min && !nearest.length; d++) {
+    nearest = [level - d, level + d].filter((l) => l >= min && l <= max).flatMap(at).filter((q) => !handIds.includes(q.id));
+  }
   const last = handIds[handIds.length - 1] || seenIds[seenIds.length - 1];
   const tiers = [
     pool.filter((q) => !seenIds.includes(q.id)),
     pool.filter((q) => !handIds.includes(q.id)),
-    neighbours.filter((q) => !handIds.includes(q.id)),
+    nearest,
     pool.length > 1 ? pool.filter((q) => q.id !== last) : pool,
   ];
   const from = tiers.find((t) => t.length);
@@ -55,4 +68,4 @@ function shuffleOptions(q, random) {
   return { ...q, options: order.map((i) => q.options[i]), answer: order.indexOf(q.answer) };
 }
 
-module.exports = { generateQuestion, hasQuestions, levelName, MAX_LEVEL, SKILL_LEVELS, BANDS };
+module.exports = { generateQuestion, hasQuestions, levelName, MAX_LEVEL, SKILL_LEVELS, BANDS, SUBJECT_PLANS, planFor };

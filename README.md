@@ -1,6 +1,6 @@
 # Drona Deck · DIDAC booth
 
-NFC card flow for the Drona Deck (print kit spec v2), built for **Science and History** (all four skills).
+NFC card flow for the Drona Deck (print kit spec v2), built for **Science and Civics** (all four skills).
 Each NFC tag holds a plain URL, and tapping a card opens that URL in the phone's browser. **So opening a URL in the
 browser is exactly the same as tapping a card.** The flow can be fully tested now; when the cards arrive you only
 write the URLs onto the tags.
@@ -8,7 +8,7 @@ write the URLs onto the tags.
 No dependencies. Needs Node 20+.
 
 ```
-npm test        # 35 automated tests (state machine + real HTTP flow)
+npm test        # 44 automated tests (state machine + real HTTP flow)
 npm start       # dev mode: player + simulator + code map + tap log
 npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 ```
@@ -17,19 +17,21 @@ npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 
 | Card | Path | At this booth |
 |---|---|---|
-| Science, History | `/s/SCI/<set>`, `/s/HIS/<set>` | Live |
+| Science, Civics | `/s/SCI/<set>`, `/s/CIV/<set>` | Live. Civics uses the print kit's third subject slot (History in kit v2), so that card needs reprinting |
 | Easy, Tough (level cards) | `/d/EASY/<set>`, `/d/TOUGH/<set>` | Live: the only way to pick the level |
 | Depth, Stretch, Untangle, Pivot | `/p/DEP/<set>`, `/p/STR/<set>`, `/p/UNT/<set>`, `/p/PIV/<set>` | Live |
 | Ready / Assist / Pass | `/k/RDY/<set>`, `/k/AST/<set>`, `/k/PAS/<set>` | Live |
 | Rules | `/r/<set>` | Live: shows rules, starts a new game |
-| English | `/s/ENG/<set>` | Shows "not live at this booth", game unchanged |
+| English, History | `/s/ENG/<set>`, `/s/HIS/<set>` | Shows "not live at this booth", game unchanged |
 
 `<set>` is 1, 2 or 3. It is logged on every tap so a faulty tag can be traced to its physical set, but it never changes the game.
 
 ## Game flow (one "Quick Hand")
 
-1. **Tap a subject card**: Science or History.
+1. **Tap a subject card**: Science or Civics.
 2. **Tap a level card**: Easy or Tough (NFC only, no screen buttons). Easy plays levels 1–3, Tough plays levels 4–6.
+   Civics has one question per level, so its hands follow a fixed order: Easy = questions 1 → 2 → 3,
+   Tough = questions 4 → 5 → 6, whatever the visitor answers.
 3. **Tap a skill card**: Depth, Stretch, Untangle or Pivot. A skill card tapped earlier is remembered,
    so the hand starts as soon as the level is picked.
 4. **Three questions.** Each one shows first, then the visitor taps a call chip:
@@ -37,7 +39,7 @@ npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
    - **Assist**: shows a hint first. Correct gives +1 and stays on the same level.
    - **Pass**: a deliberate skip. It counts as one of the three questions.
 
-   A wrong answer drops one level. Levels never leave the Easy or Tough band.
+   A wrong answer drops one level. Levels never leave the Easy or Tough band. (Civics follows its fixed order.)
    Right/wrong is **not** shown during the hand.
 5. **Estimate**: "How many do you think you got right?" (0–3).
 6. **Result**: score, guess vs. actual (calibration), points, and a message per call (spec 11.2).
@@ -54,12 +56,26 @@ Options are shuffled every time a question is served, so the right answer is not
 
 ## Question bank
 
-`engine/bank.js` (Science · Depth), `engine/bank-science.js` (Science · Stretch, Untangle, Pivot, mostly Friction)
-and `engine/bank-history.js` (History · all four skills, the Revolt of 1857). At least 2 questions per subject,
-skill and level, 108 in total. History follows the spec 8.3 safeguards: practice sources are labelled
-"Practice source (written for this activity)", reasoning questions reward the best-supported answer, and wording
-is neutral. **All new items are marked `review: 'pending'` and need sign-off from the named Science and Social
-Science reviewers before the event.**
+- `engine/bank-science-forces.js`: all 24 items of the DIDAC Science Pool, Class 8 "Exploring Forces". These are
+  the **only** Science questions in play: one per skill and level (L1–L6). Science keeps the adaptive ladder; when
+  the level it moves to is already used in the hand, the engine serves the nearest unused level in the band, so a
+  hand never repeats a question.
+- The older Science items (`SCIENCE_DEPTH` in `engine/bank.js`, and `engine/bank-science.js`) are kept on disk but
+  not loaded, so they never appear in play.
+- `engine/bank-civics.js`: all 24 items of the DIDAC Civics Pool v2, Class 8 Indian Constitution unit (secularism).
+  The fixed order lives in `SUBJECT_PLANS` in `engine/index.js`.
+
+Pool items keep their proposed competency, distractor logic and source-fact references (`sourceFacts`, SF#), and
+`format` records any conversion. The booth only scores single-answer multiple choice, so:
+- `yes_no_grid` items list their four statements in the stimulus and ask for the right set (e.g. "2 and 4"); the
+  grid's trap statement is built into the wrong sets.
+- `one_line` items are rebuilt as four options, with the rubric's full-credit answer as the key and the
+  partial/no-credit answers as distractors.
+
+`engine/bank-history.js` (the Revolt of 1857) is still in the bank but History is not live at this booth.
+
+The Science (Forces) and Civics items have been reviewed and approved by the Science and Social Science reviewers,
+and are marked `review: 'approved'`.
 
 ## Configuration (environment variables)
 
@@ -77,7 +93,7 @@ PowerShell example: `$env:BASE_URL="http://192.168.1.20:4300"; npm start`
 
 ## Testing without cards
 
-1. **Automated:** run `npm test`. All 34 should pass.
+1. **Automated:** run `npm test`. All 44 should pass.
 2. **Simulator (laptop):** open http://localhost:4300/dev/deck. Click card buttons, and the phone frame loads the exact tag URL.
    The live session state and tap log show alongside.
 3. **Real phone (closest to a real NFC tap):** open http://localhost:4300/dev/codes on the laptop and scan the QR codes with
@@ -99,13 +115,13 @@ The tap log and the saved reports reset on every deploy or restart there, so sha
 2. Download `/dev/codes.csv` (run once with dev tools on and the final `BASE_URL`) for the URL list.
 3. In **NFC Tools** (Android/iOS), use *Write → Add a record → URL* with the card's URL. Read it back to check, then *Other → Lock tag*.
    Lock only after the read-back works, because locking can't be undone.
-4. Smoke test per set: Rules → History → Easy card → Depth → three calls → estimate → result → class → share (scan the QR), on one Android and one iPhone.
+4. Smoke test per set: Rules → Civics → Easy card → Depth → three calls → estimate → result → class → share (scan the QR), on one Android and one iPhone.
    In `/dev/log` (or `logs/taps.jsonl`) every line should show the right `set`.
 
 ## Layout
 
 ```
-engine/   question engine + Science×Depth bank (24 questions, L1–L6)
+engine/   question engine; banks: bank.js (Science × Depth), bank-science.js, bank-civics.js, bank-history.js (not live)
 server/   app.js (routes), state.js (game state machine), codes.js (code map),
           sessions.js, tapLog.js, views.js (HTML), config.js
 tests/    state.test.js, routes.test.js

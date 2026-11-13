@@ -289,4 +289,6 @@ const SCIENCE_DEPTH = [
   },
 ];
 
-module.exports = [...SCIENCE_DEPTH, ...require('./bank-science'), ...require('./bank-history')];
+// Active bank. Science plays only the "Exploring Forces" pool (bank-science-forces.js). The older Science
+// items (SCIENCE_DEPTH above and bank-science.js) are kept on disk but are not loaded, so they never appear.
+module.exports = [...require('./bank-science-forces'), ...require('./bank-civics'), ...require('./bank-history')];

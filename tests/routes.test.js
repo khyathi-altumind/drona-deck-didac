@@ -49,7 +49,7 @@ test('full booth flow: subject → Easy/Tough card → skill → 3 questions →
   t.after(close);
   const b = browser(base, clock);
 
-  let res = await b.tap('/s/HIS/1');
+  let res = await b.tap('/s/SCI/1');
   assert.equal(res.status, 303);
   assert.equal(res.headers.get('location'), '/play');
   let first = await b.page();
@@ -185,7 +185,7 @@ test('codes are case-insensitive and trailing slashes are fine', async (t) => {
   const { base, clock, close } = await boot();
   t.after(close);
   const b = browser(base, clock);
-  await b.tap('/s/his/1/');
+  await b.tap('/s/civ/1/');
   await b.tap('/d/EASY/1');
   await b.tap('/p/Str/1');
   assert.equal((await b.state()).phase, 'QUESTION');
@@ -198,10 +198,10 @@ test('idle timeout starts a fresh game', async (t) => {
   await b.tap('/s/SCI/1');
   await b.tap('/d/EASY/1');
   clock.t += 61_000;
-  await b.tap('/s/HIS/1');
+  await b.tap('/s/SCI/1');
   const s = await b.state();
   assert.equal(s.phase, 'DIFFICULTY');
-  assert.equal(s.subject, 'HIS');
+  assert.equal(s.subject, 'SCI');
   assert.equal(s.difficulty, null, 'old level choice is gone');
 });
 
@@ -262,12 +262,13 @@ test('call button box: station is remembered and button presses are logged as su
   assert.match(page, /<button class="opt" name="choice" value="0" data-key="1">/, 'answer buttons are present for keys 1-4');
 });
 
-test('code map has all 39 tag URLs in the print-kit format, with Science and History live', async (t) => {
+test('code map has all 39 tag URLs in the print-kit format, with Science and Civics live', async (t) => {
   const rows = codeMap('https://drona.example');
   assert.equal(rows.length, 39);
   const urls = rows.map((r) => r.url);
   assert.ok(urls.includes('https://drona.example/s/SCI/1'));
-  assert.ok(urls.includes('https://drona.example/s/HIS/1'));
+  assert.ok(urls.includes('https://drona.example/s/CIV/1'));
+  assert.ok(!urls.some((u) => u.includes('/s/HIS/')), 'History is not in the code map');
   assert.ok(urls.includes('https://drona.example/d/EASY/1'));
   assert.ok(urls.includes('https://drona.example/d/TOUGH/3'));
   assert.ok(urls.includes('https://drona.example/p/PIV/2'));
@@ -281,6 +282,28 @@ test('code map has all 39 tag URLs in the print-kit format, with Science and His
   t.after(close);
   const csv = await (await fetch(base + '/dev/codes.csv')).text();
   assert.equal(csv.trim().split('\n').length, 40);
+});
+
+test('Civics flow over HTTP: subject → Tough card → skill → questions 4, 5, 6 → estimate', async (t) => {
+  const { base, clock, close } = await boot();
+  t.after(close);
+  const b = browser(base, clock);
+  await b.tap('/s/CIV/1');
+  assert.match(await b.page(), /Now tap a level card/);
+  await b.tap('/d/TOUGH/1');
+  await b.tap('/p/DEP/1');
+  const levels = [];
+  for (let i = 0; i < 3; i++) {
+    const s = await b.state();
+    levels.push(s.question.level);
+    const page = await b.page();
+    assert.ok(page.includes(escapeHtml(s.question.stem)), 'question is on the player page');
+    if (s.question.context) assert.ok(page.includes(escapeHtml(s.question.context)), 'stimulus is on the player page');
+    await b.tap('/k/RDY/1');
+    await b.post('/answer', { qid: s.question.id, choice: String(s.question.answer) });
+  }
+  assert.deepEqual(levels, [4, 5, 6]);
+  assert.equal((await b.state()).phase, 'ESTIMATE');
 });
 
 function escapeHtml(s) {

@@ -49,7 +49,7 @@ h1,h2{font-family:var(--serif);font-weight:700;margin:0}
 h1{font-size:30px;line-height:1.15}
 h2{font-size:22px;line-height:1.2}
 .stem{font-family:var(--serif);font-size:22px;line-height:1.35;margin:8px 0 0}
-.context{background:#0F3021;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;line-height:1.5;margin-top:12px;color:var(--ivory-warm)}
+.context{white-space:pre-line;background:#0F3021;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;line-height:1.5;margin-top:12px;color:var(--ivory-warm)}
 .lead{font-size:15px;color:var(--ivory-warm);line-height:1.5;margin:6px 0 0}
 .small{font-size:13px;color:var(--muted)}
 .rules{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:10px}
@@ -191,7 +191,7 @@ function slots(s) {
 
 function rulesList() {
   return `<ol class="rules">
-  <li><b>01</b><span>Tap a subject card: Science or History.</span></li>
+  <li><b>01</b><span>Tap a subject card: Science or Civics.</span></li>
   <li><b>02</b><span>Tap a level card: Easy or Tough.</span></li>
   <li><b>03</b><span>Tap a skill card.</span></li>
   <li><b>04</b><span>Three questions. For each one, read it, then tap your call: Ready, Assist or Pass. Then answer.</span></li>
@@ -201,7 +201,7 @@ function rulesList() {
 }
 
 function questionEyebrow(s) {
-  return `<div class="eyebrow">${esc(CARDS.s[s.subject].name)} · ${esc(CARDS.p[s.skill].name)} · Level ${s.question.level} · ${esc(levelName(s.skill, s.question.level))}</div>`;
+  return `<div class="eyebrow">${esc(CARDS.s[s.subject].name)} · ${esc(CARDS.p[s.skill].name)}</div>`;
 }
 
 function context(q) {
@@ -287,7 +287,7 @@ function phaseBody(s, { report, reportUrl }) {
   switch (s.phase) {
     case 'IDLE':
       return `<section class="panel"><div class="eyebrow">How to play</div><h1>The Drona Deck<span class="dot">.</span></h1>${rulesList()}
-<p class="lead" style="margin-top:16px">Start by tapping a <b>Science</b> or <b>History</b> card.</p></section>`;
+<p class="lead" style="margin-top:16px">Start by tapping a <b>Science</b> or <b>Civics</b> card.</p></section>`;
 
     case 'DIFFICULTY':
       return `<section class="panel"><div class="eyebrow">${esc(CARDS.s[s.subject].name)} chosen</div>
@@ -391,7 +391,7 @@ function shareScript() {
 
 function devBar(set) {
   const links = [
-    ['s', 'SCI', 'Science'], ['s', 'HIS', 'History'], ['d', 'EASY', 'Easy'], ['d', 'TOUGH', 'Tough'], ['p', 'DEP', 'Depth'], ['p', 'STR', 'Stretch'], ['p', 'UNT', 'Untangle'], ['p', 'PIV', 'Pivot'],
+    ['s', 'SCI', 'Science'], ['s', 'CIV', 'Civics'], ['d', 'EASY', 'Easy'], ['d', 'TOUGH', 'Tough'], ['p', 'DEP', 'Depth'], ['p', 'STR', 'Stretch'], ['p', 'UNT', 'Untangle'], ['p', 'PIV', 'Pivot'],
     ['k', 'RDY', 'Ready'], ['k', 'AST', 'Assist'], ['k', 'PAS', 'Pass'], ['r', 'R', 'Rules'], ['s', 'ENG', 'English (off)'],
   ]
     .map(([k, c, n]) => `<a href="${tapPath(k, c, set)}">${esc(n)}</a>`)

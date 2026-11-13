@@ -8,10 +8,12 @@
 //   any --Rules card--> IDLE (fresh game)
 //
 // A skill card tapped early is remembered, so the hand starts as soon as the level card is tapped.
+// Subjects with a fixed plan (Civics) use the same cards, but the hand serves the band's levels in order
+// (Easy: 1 → 2 → 3, Tough: 4 → 5 → 6) instead of moving up and down.
 // Results stay hidden until the visitor has estimated their score, so the estimate is honest.
 // Every function mutates the session and returns an outcome string for the tap log.
 
-const { BANDS } = require('../engine');
+const { BANDS, planFor } = require('../engine');
 
 const HAND_SIZE = 3;
 const HAND_PHASES = ['QUESTION', 'ANSWERING'];
@@ -50,7 +52,9 @@ function notice(s, tone, text) {
 const questionNumber = (s) => s.hand.length + 1;
 
 function nextQuestion(s, engine) {
-  const band = BANDS[s.difficulty];
+  const plan = planFor(s.subject, s.difficulty);
+  if (plan) s.level = plan[s.hand.length];
+  const band = plan ? { min: s.level, max: s.level } : BANDS[s.difficulty];
   const q = engine.generateQuestion({
     subject: s.subject,
     skill: s.skill,
@@ -70,7 +74,7 @@ function startHand(s, engine) {
   s.hand = [];
   s.estimate = null;
   s.reportId = null;
-  s.level = BANDS[s.difficulty].start;
+  s.level = planFor(s.subject, s.difficulty) ? null : BANDS[s.difficulty].start;
   nextQuestion(s, engine);
 }
 
@@ -84,7 +88,7 @@ function applyTap(s, tap, engine) {
   }
 
   if (!card.active) {
-    notice(s, 'warn', `${card.name} isn’t live at this booth yet. Try the Science or History card.`);
+    notice(s, 'warn', `${card.name} isn’t live at this booth yet. Try the Science or Civics card.`);
     return 'inactive';
   }
 
@@ -153,7 +157,7 @@ function selectDifficulty(s, code, card, engine) {
     return 'locked';
   }
   if (s.phase === 'IDLE') {
-    notice(s, 'warn', `${card.name} is a level card. First tap a subject card: Science or History.`);
+    notice(s, 'warn', `${card.name} is a level card. First tap a subject card: Science or Civics.`);
     return 'difficulty-too-early';
   }
 
@@ -248,10 +252,15 @@ function answer(s, choice, engine) {
   const band = BANDS[s.difficulty];
   const call = s.call;
   const points = correct ? (call === 'RDY' ? 2 : 1) : 0;
+  // Fixed-plan subjects follow their path; nextQuestion sets the level.
+  if (planFor(s.subject, s.difficulty)) { finishQuestion(s, { call, choice, correct, points }, engine); return done(s, correct); }
   if (correct && call === 'RDY') s.level = Math.min(band.max, s.level + 1);
   if (!correct) s.level = Math.max(band.min, s.level - 1);
   finishQuestion(s, { call, choice, correct, points }, engine);
+  return done(s, correct);
+}
 
+function done(s, correct) {
   s.notice = s.phase === 'ESTIMATE' ? null : { tone: 'info', text: `Answer locked in. Question ${questionNumber(s)} of ${HAND_SIZE}.` };
   return correct ? 'answer-correct' : 'answer-wrong';
 }
