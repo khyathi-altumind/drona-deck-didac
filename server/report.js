@@ -112,6 +112,7 @@ function buildReport(s) {
       n: i + 1,
       level: h.level,
       levelName: levelName(s.skill, h.level),
+      competency: h.question.competency || null,
       context: h.question.context || null,
       stem: h.question.stem,
       options: h.question.options,

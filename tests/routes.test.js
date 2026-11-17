@@ -6,7 +6,7 @@ const { codeMap } = require('../server/codes');
 // Boots the real HTTP server on a random port with a controllable clock.
 async function boot(overrides = {}) {
   const clock = { t: 1_000_000 };
-  const app = createApp({ LOG_FILE: null, REPORT_FILE: null, DEV_TOOLS: true, DEBOUNCE_MS: 2000, IDLE_TIMEOUT_MS: 60_000, BASE_URL: 'https://drona.example', now: () => clock.t, ...overrides });
+  const app = createApp({ LOG_FILE: null, REPORT_FILE: null, EMAIL_FILE: null, mailer: null, DEV_TOOLS: true, DEBOUNCE_MS: 2000, IDLE_TIMEOUT_MS: 60_000, BASE_URL: 'https://drona.example', now: () => clock.t, ...overrides });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${app.server.address().port}`;
   return { app, base, clock, close: () => new Promise((r) => app.server.close(r)) };
@@ -82,6 +82,8 @@ test('full booth flow: subject → Easy/Tough card → skill → 3 questions →
   assert.match(page, /3<small> of 3 correct/);
   assert.match(page, /Better than you thought/);
   assert.match(page, /Compare with the class/);
+  assert.match(page, /Get my complete report/, 'the result screen is a preview with a button for the full report');
+  assert.match(page, /<dialog class="getreport"[\s\S]*name="name"[\s\S]*name="phone"[\s\S]*name="email"/);
 
   await b.post('/goto', { to: 'CLASS' });
   page = await b.page();
@@ -92,8 +94,9 @@ test('full booth flow: subject → Easy/Tough card → skill → 3 questions →
   page = await b.page();
   const url = `https://drona.example/report/${s.reportId}`;
   assert.ok(page.includes(url), 'report link uses BASE_URL');
-  assert.match(page, /wa\.me\/\?text=/);
-  assert.match(page, /mailto:/);
+  assert.doesNotMatch(page, /wa\.me|WhatsApp/i, 'WhatsApp sharing is removed');
+  assert.match(page, /<form method="post" action="\/email"/);
+  assert.match(page, /autocomplete="off"/, 'booth device never remembers a visitor address');
 
   const outcomes = app.tapLog.recent(30).reverse().map((e) => e.outcome);
   assert.deepEqual(outcomes.slice(0, 3), ['subject', 'difficulty', 'hand-start']);

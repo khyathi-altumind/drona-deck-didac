@@ -1,6 +1,7 @@
 const { CARDS, tapPath } = require('./codes');
 const { levelName, MAX_LEVEL, BANDS } = require('../engine');
 const { HAND_SIZE } = require('./state');
+const { buildInsights, insightsEmail } = require('./insights');
 
 function esc(v) {
   return String(v ?? '')
@@ -111,7 +112,15 @@ h2{font-size:22px;line-height:1.2}
 .link{font-size:12px;color:var(--muted);overflow-wrap:anywhere;margin-top:10px}
 .btn{display:inline-block;font:inherit;font-weight:600;font-size:16px;border:0;border-radius:12px;padding:14px 18px;background:var(--gold);color:#1B1606;cursor:pointer;text-decoration:none;text-align:center}
 .btn.ghost{background:transparent;color:var(--ivory);border:1px solid var(--line)}
-.btn.wa{background:#25D366;color:#06210F}
+.btn.wide{width:100%}
+.cta{border:1px solid var(--gold);background:linear-gradient(180deg,#123824,var(--panel))}
+.cta ul{margin:10px 0 0;padding-left:18px;font-size:14px;line-height:1.6;color:var(--ivory-warm)}
+dialog.getreport{width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;background:var(--panel);color:var(--ivory);border:1px solid var(--gold);border-radius:16px;padding:20px}
+dialog.getreport::backdrop{background:rgba(4,20,12,.78)}
+.field{display:grid;gap:6px;margin-top:12px}
+.field input{width:100%;font:inherit;font-size:16px;color:var(--ivory);background:#0F3021;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.field input:focus{border-color:var(--gold);outline:none}
+.dlgclose{float:right;font:inherit;font-size:22px;line-height:1;background:none;border:0;color:var(--muted);cursor:pointer;padding:0 4px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .devbar{position:fixed;left:0;right:0;bottom:0;background:#04140C;border-top:1px dashed var(--gold);padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center;font-size:12px}
 .devbar b{color:var(--gold);letter-spacing:.1em;margin-right:4px}
@@ -122,6 +131,32 @@ th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertic
 th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
 .dim{opacity:.45}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.tile{background:#0F3021;border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.tile b{display:block;font-family:var(--serif);font-size:26px;margin-top:4px}
+.tile b small{font-size:13px;color:var(--muted);font-weight:400;font-family:var(--sans)}
+.tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;margin-top:6px}
+.tag.good{background:#1E4A31;color:var(--ok)} .tag.mid{background:#3A2E12;color:#F3C47A} .tag.low{background:#3E1F18;color:#F0A08C}
+.ticks{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px}
+.ticks li{padding-left:22px;position:relative;font-size:15px;line-height:1.45;color:var(--ivory-warm)}
+.ticks li:before{content:'✓';position:absolute;left:0;color:var(--gold);font-weight:700}
+.explain{border-left:3px solid var(--gold);background:#0F3021;border-radius:6px;padding:10px 14px;margin-top:14px;font-size:14px;line-height:1.5;color:var(--ivory-warm)}
+.explain p{margin:0} .explain p+p{margin-top:6px}
+.lvls{display:grid;gap:6px;margin-top:12px}
+.lvl{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;background:#0F3021;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px}
+.lvl.out{opacity:.35}
+.lvl .nm small{color:var(--muted);font-size:12px;margin-left:6px}
+.lvl .qs{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.qtag{font-size:12px;font-weight:600;border-radius:6px;padding:2px 7px;background:var(--line)}
+.qtag.ok{background:#1E4A31;color:var(--ok)} .qtag.no{background:#3E1F18;color:#F0A08C} .qtag.skip{color:var(--muted)}
+.mix .good{background:var(--rdy)} .mix .partial{background:var(--ast)} .mix .bad{background:var(--bad)}
+.drow{display:grid;grid-template-columns:30px auto minmax(0,1fr);gap:10px;align-items:center;font-size:14px;padding:6px 0;border-bottom:1px solid var(--line)}
+.drow:last-child{border-bottom:0}
+.drow .k-good{color:var(--ok)} .drow .k-partial{color:#F3C47A} .drow .k-bad{color:#F0A08C}
+.boxes{display:grid;gap:10px;margin-top:12px}
+.box{background:#0F3021;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:10px 14px}
+.box ul{margin:6px 0 0;padding-left:18px;font-size:14px;line-height:1.5;color:var(--ivory-warm)}
+.box li+li{margin-top:4px}
 @media (max-width:480px){
   .slots{grid-template-columns:1fr 1fr}
   .slots .slot.skill{grid-column:1/-1}
@@ -277,13 +312,156 @@ function classComparison(r) {
 <p class="small" style="margin-top:12px">This is an illustrative Grade 8 class of ${c.size}. In a school pilot, this view shows your real class, with each pupil’s thinking, decisions and confidence over the term.</p>`;
 }
 
-function shareText(r, url) {
-  return `My Drona Quick Hand: ${r.correct} of ${r.total} correct in ${r.subject.name} · ${r.skill.name} (${r.difficulty.name}). I guessed ${r.estimate}. See my report: ${url}`;
+// ---------- Rule-based analytics (server/insights.js) ----------
+
+function glanceSection(r, ins) {
+  const tile = (label, value, unit, tag) =>
+    `<div class="tile"><span class="eyebrow">${esc(label)}</span><b>${value}${unit ? `<small> ${esc(unit)}</small>` : ''}</b>${tag ? `<span class="tag ${tag.tone}">${esc(tag.label)}</span>` : ''}</div>`;
+  return `<div class="eyebrow">At a glance</div>
+<ul class="ticks">${ins.glance.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
+<div class="tiles">
+  ${tile('Score', r.correct, `of ${r.total} · ${r.points} ${r.points === 1 ? 'point' : 'points'}`)}
+  ${tile('Thinking depth', ins.depth.score, '/100', ins.depth)}
+  ${tile('Decision-making', ins.decision.score, '/100', ins.decision)}
+  ${tile('Knowing what you know', r.estimate, `guessed · got ${r.correct}`, ins.calibration)}
+</div>`;
+}
+
+function depthSection(r, ins) {
+  const qtag = (q) => `<span class="qtag ${q.call === 'PAS' ? 'skip' : q.correct ? 'ok' : 'no'}">Q${q.n} ${q.call === 'PAS' ? 'pass' : q.correct ? '✓' : '✗'}</span>`;
+  const rows = [...ins.depth.ladder].reverse()
+    .map((l) => `<div class="lvl ${l.inBand ? '' : 'out'}"><b>L${l.level}</b><span class="nm">${esc(l.name)}${l.inBand ? '' : '<small>other band</small>'}</span><span class="qs">${l.questions.map(qtag).join('')}</span></div>`)
+    .join('');
+  return `<div class="eyebrow">Thinking depth</div>
+<h2 style="margin-top:6px">${ins.depth.score}<span class="small" style="font-family:var(--sans)">/100</span> <span class="tag ${ins.depth.tone}" style="vertical-align:middle">${esc(ins.depth.label)}</span></h2>
+<p class="lead">How far up the ${esc(r.skill.name)} ladder your right answers reached. Higher levels count for more, and a hint takes a quarter off.</p>
+<div class="lvls">${rows}</div>
+<div class="explain">${ins.depth.text.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`;
+}
+
+function decisionSection(r, ins) {
+  const { mix } = ins.decision;
+  const seg = (k, label) => (mix[k] ? `<span class="${k}" style="flex:${mix[k]}">${label} ${mix[k]}</span>` : '');
+  const rows = ins.decision.decisions
+    .map((d) => `<div class="drow"><b>Q${d.n}</b><span class="chip sm ${d.call}">${CALL_NAME[d.call]}</span><span class="k-${d.kind}">${d.call === 'PAS' ? 'Skipped' : d.correct ? '✓' : '✗'} · ${esc(d.label)}</span></div>`)
+    .join('');
+  return `<div class="eyebrow">Decision-making</div>
+<h2 style="margin-top:6px">${ins.decision.score}<span class="small" style="font-family:var(--sans)">/100</span> <span class="tag ${ins.decision.tone}" style="vertical-align:middle">${esc(ins.decision.label)}</span></h2>
+<p class="lead">Whether each call (Ready, Assist or Pass) fitted what you actually knew.</p>
+<div class="mix" style="margin-top:12px">${seg('good', 'Good')}${seg('partial', 'Partial')}${seg('bad', 'Rethink')}</div>
+<div class="legend"><span><i style="background:var(--rdy)"></i>Good</span><span><i style="background:var(--ast)"></i>Partial</span><span><i style="background:var(--bad)"></i>Needs a rethink</span></div>
+<div style="margin-top:10px">${rows}</div>
+${ins.decision.text.length ? `<div class="explain">${ins.decision.text.map((t) => `<p>${esc(t)}</p>`).join('')}</div>` : ''}`;
+}
+
+function nextStepsSection(ins) {
+  const box = (title, acc, items) => `<div class="box" style="--acc:${acc}"><b>${esc(title)}</b><ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+  return `<div class="eyebrow">Strengths, focus areas and next steps</div>
+<div class="boxes">${box('Strengths', 'var(--ok)', ins.strengths)}${box('Focus areas', 'var(--ast)', ins.focus)}${box('Next steps', 'var(--gold)', ins.next)}</div>`;
+}
+
+function reportWhen(r) {
+  return new Date(r.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+// "Get my complete report" button and the pop-up form (name, phone, email). On the shared booth device
+// autocomplete is off, so the next visitor never sees the previous visitor's details.
+function reportForm(action, { booth = false, open = false } = {}) {
+  const ac = (v) => (booth ? 'off' : v);
+  return `<button class="btn wide" type="button" id="getreport" data-open="${open ? '1' : ''}">Get my complete report →</button>
+<dialog class="getreport" id="email" aria-labelledby="gr-title">
+<form method="post" action="${esc(action)}">
+<button class="dlgclose" type="button" aria-label="Close" data-close>×</button>
+<div class="eyebrow">Complete report</div>
+<h2 id="gr-title" style="margin-top:6px">Where should we send it<span class="dot">?</span></h2>
+<p class="small" style="margin:6px 0 0">We’ll email your full report with every analytics section.</p>
+<label class="field"><span class="eyebrow">Name</span><input type="text" name="name" required maxlength="80" autocomplete="${ac('name')}" placeholder="Your name"></label>
+<label class="field"><span class="eyebrow">Phone number</span><input type="tel" name="phone" required maxlength="20" minlength="7" inputmode="tel" autocomplete="${ac('tel')}" placeholder="98765 43210"></label>
+<label class="field"><span class="eyebrow">Email</span><input type="email" name="email" required maxlength="254" inputmode="email" autocomplete="${ac('email')}" placeholder="you@gmail.com"></label>
+<button class="btn wide" type="submit" style="margin-top:16px">Send my report</button>
+<p class="small" style="margin:8px 0 0">We save these details only to send you this report and follow up about Drona.</p>
+</form></dialog>
+<script>
+(function () {
+  var dlg = document.getElementById('email'), btn = document.getElementById('getreport');
+  if (!dlg || !btn) return;
+  function show() { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); var f = dlg.querySelector('input'); if (f) f.focus(); }
+  btn.addEventListener('click', show);
+  dlg.querySelector('[data-close]').addEventListener('click', function () { if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); });
+  if (btn.dataset.open) show();
+})();
+</script>`;
+}
+
+const MAIL_RESULT = {
+  sent: ['info', 'Report sent. Check your inbox (and the spam folder).'],
+  saved: ['info', 'Details saved. The Drona team will send your report shortly.'],
+  failed: ['warn', 'Details saved, but sending failed just now. The Drona team will send your report.'],
+  'invalid-name': ['warn', 'Please enter your name.'],
+  'invalid-phone': ['warn', 'That phone number doesn’t look right. Please check it and try again.'],
+  invalid: ['warn', 'That email address doesn’t look right. Please check it and try again.'],
+  limit: ['warn', 'This report has already been emailed the maximum number of times.'],
+};
+
+// The emailed report: the four analytics sections, light theme, inline styles (mail apps drop <style>).
+function reportEmail(r, url, { name } = {}) {
+  const ins = buildInsights(r);
+  const C = { ink: '#14231A', muted: '#5B6B61', line: '#E2DED2', bg: '#F6F3EA', card: '#FFFFFF', gold: '#8A6D1C', good: '#2F7A4C', mid: '#A8701A', low: '#B5523C' };
+  const TONE = { good: C.good, mid: C.mid, low: C.low };
+  const KIND = { good: C.good, partial: C.mid, bad: C.low };
+  const tag = (b) => `<span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;background:${TONE[b.tone]}">${esc(b.label)}</span>`;
+  const eyebrow = (t) => `<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${C.muted};margin:0 0 8px">${esc(t)}</div>`;
+  const card = (inner) => `<tr><td style="padding:0 0 14px"><div style="background:${C.card};border:1px solid ${C.line};border-radius:10px;padding:18px">${inner}</div></td></tr>`;
+  const paras = (ts) => ts.map((t) => `<p style="margin:8px 0 0;font-size:14px;line-height:1.5">${esc(t)}</p>`).join('');
+  const tile = (label, value, sub, b) => `<td width="50%" style="padding:4px;vertical-align:top"><div style="border:1px solid ${C.line};border-radius:8px;padding:10px 12px">
+<div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${C.muted}">${esc(label)}</div>
+<div style="font-size:24px;font-weight:700;margin:4px 0">${esc(value)} <span style="font-size:12px;font-weight:400;color:${C.muted}">${esc(sub)}</span></div>${b ? tag(b) : ''}</div></td>`;
+  const cell = 'padding:7px 6px;border-top:1px solid ' + C.line + ';font-size:14px';
+  const depthRows = r.questions.map((q) => `<tr><td style="${cell}"><b>Q${q.n}</b></td><td style="${cell}">L${q.level} · ${esc(q.levelName)}</td><td style="${cell}">${CALL_NAME[q.call]}</td>
+<td style="${cell};color:${q.call === 'PAS' ? C.muted : q.correct ? C.good : C.low};font-weight:600">${q.call === 'PAS' ? 'Passed' : q.correct ? '✓ Correct' : '✗ Not quite'}</td></tr>`).join('');
+  const decRows = ins.decision.decisions.map((d) => `<tr><td style="${cell}"><b>Q${d.n}</b></td><td style="${cell}">${CALL_NAME[d.call]}</td><td style="${cell};color:${KIND[d.kind]};font-weight:600">${esc(d.label)}</td></tr>`).join('');
+  const box = (title, color, items) => `<div style="border-left:3px solid ${color};background:${C.bg};border-radius:6px;padding:10px 14px;margin-top:10px"><b style="font-size:14px">${esc(title)}</b>
+<ul style="margin:6px 0 0;padding-left:18px;font-size:14px;line-height:1.5">${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+
+  const html = `<!doctype html><html><body style="margin:0;background:${C.bg};color:${C.ink};font-family:Segoe UI,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}"><tr><td align="center" style="padding:20px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
+<tr><td style="padding:0 0 14px"><div style="font-family:Georgia,serif;font-size:24px;font-weight:700">Drona<span style="color:${C.gold}">.</span></div>
+<div style="font-size:13px;color:${C.muted}">Quick Hand report · ${esc(r.subject.name)} · ${esc(r.skill.name)} · ${esc(r.difficulty.name)} · ${esc(reportWhen(r))} IST</div>
+${name ? `<p style="margin:14px 0 0;font-size:15px">Hi ${esc(name)}, here is your complete Drona report.</p>` : ''}</td></tr>
+${card(`${eyebrow('At a glance')}${paras(ins.glance)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px"><tr>${tile('Score', `${r.correct}`, `of ${r.total} · ${r.points} ${r.points === 1 ? 'point' : 'points'}`)}${tile('Thinking depth', `${ins.depth.score}`, '/100', ins.depth)}</tr>
+<tr>${tile('Decision-making', `${ins.decision.score}`, '/100', ins.decision)}${tile('Knowing what you know', `${r.estimate}`, `guessed · got ${r.correct}`, ins.calibration)}</tr></table>`)}
+${card(`${eyebrow('Thinking depth')}<div style="font-size:22px;font-weight:700">${ins.depth.score}<span style="font-size:13px;font-weight:400;color:${C.muted}">/100</span> ${tag(ins.depth)}</div>
+<p style="margin:6px 0 0;font-size:14px;color:${C.muted}">How far up the ${esc(r.skill.name)} ladder your right answers reached. Higher levels count for more; a hint takes a quarter off.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px">${depthRows}</table>${paras(ins.depth.text)}`)}
+${card(`${eyebrow('Decision-making')}<div style="font-size:22px;font-weight:700">${ins.decision.score}<span style="font-size:13px;font-weight:400;color:${C.muted}">/100</span> ${tag(ins.decision)}</div>
+<p style="margin:6px 0 0;font-size:14px;color:${C.muted}">Whether each call (Ready, Assist or Pass) fitted what you actually knew. Good ${ins.decision.mix.good} · Partial ${ins.decision.mix.partial} · Needs a rethink ${ins.decision.mix.bad}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px">${decRows}</table>${paras(ins.decision.text)}`)}
+${card(`${eyebrow('Strengths, focus areas and next steps')}${box('Strengths', C.good, ins.strengths)}${box('Focus areas', C.mid, ins.focus)}${box('Next steps', C.gold, ins.next)}`)}
+${url ? `<tr><td align="center" style="padding:4px 0 14px"><a href="${esc(url)}" style="display:inline-block;background:${C.gold};color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">See every question and answer</a></td></tr>` : ''}
+<tr><td style="font-size:12px;color:${C.muted};line-height:1.5">Drona measures how students think, how they decide and how well they know their own ability. These analytics are worked out by fixed rules from three questions, so they are a quick snapshot, not a full assessment. You received this because this address was entered at the Drona booth.</td></tr>
+</table></td></tr></table></body></html>`;
+
+  return {
+    subject: `Your Drona Quick Hand report: ${r.subject.name} · ${r.skill.name}`,
+    text: (name ? `Hi ${name}, here is your complete Drona report.\n\n` : '') + insightsEmail(r, ins, url, `${reportWhen(r)} IST`),
+    html,
+  };
+}
+
+// Teaser under the preview: what the complete report adds.
+function reportCta(action, opts) {
+  return `<section class="panel cta"><div class="eyebrow">This is a preview</div>
+<h2 style="margin-top:6px">Get your complete report<span class="dot">.</span></h2>
+<ul><li>Thinking depth: how far up the skill ladder you reached</li><li>Decision-making: whether each Ready / Assist / Pass call fitted</li><li>Your strengths, focus areas and next steps</li><li>Every question with the correct answer explained</li></ul>
+<div style="margin-top:14px">${reportForm(action, opts)}</div></section>`;
 }
 
 // ---------- Booth screens ----------
 
 function phaseBody(s, { report, reportUrl }) {
+  const form = { booth: true, open: Boolean(s.openForm) };
   switch (s.phase) {
     case 'IDLE':
       return `<section class="panel"><div class="eyebrow">How to play</div><h1>The Drona Deck<span class="dot">.</span></h1>${rulesList()}
@@ -329,9 +507,11 @@ ${s.call === 'AST' ? `<div class="hint"><b>Hint.</b> ${esc(q.hint)}</div>` : ''}
 
     case 'RESULT':
       if (!report) break;
+      // Preview only; the complete report is emailed once the visitor gives their details.
       return `<section class="panel">${resultSummary(report)}</section>
-<section class="panel">${questionList(report)}</section>
-<form method="post" action="/goto"><button class="btn" name="to" value="CLASS" style="width:100%">Compare with the class →</button></form>`;
+<section class="panel">${glanceSection(report, buildInsights(report))}</section>
+${reportCta('/email', form)}
+<form method="post" action="/goto"><button class="btn ghost" name="to" value="CLASS" style="width:100%">Compare with the class →</button></form>`;
 
     case 'CLASS':
       if (!report) break;
@@ -342,16 +522,13 @@ ${s.call === 'AST' ? `<div class="hint"><b>Hint.</b> ${esc(q.hint)}</div>` : ''}
 
     case 'SHARE': {
       if (!report) break;
-      const text = shareText(report, reportUrl);
-      const subject = `My Drona Quick Hand report (${report.subject.name} · ${report.skill.name})`;
       return `<section class="panel"><div class="eyebrow">Share report</div>
 <h1>Take your report with you<span class="dot">.</span></h1>
+<div style="margin-top:14px">${reportForm('/email', form)}</div>
 <div class="share">
   <div class="qr" id="qr" data-url="${esc(reportUrl)}">Scan code loading…</div>
   <div class="actions">
-    <p class="lead" style="margin:0">Scan the code with your phone camera to open your report.</p>
-    <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">Share on WhatsApp</a>
-    <a class="btn ghost" href="mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}">Email my report</a>
+    <p class="lead" style="margin:0">Or scan the code with your phone camera to open your report.</p>
     <button class="btn ghost" type="button" id="copy" data-url="${esc(reportUrl)}">Copy link</button>
   </div>
 </div>
@@ -410,6 +587,9 @@ function buttonScript(station) {
   var busy = false;
   document.addEventListener('keydown', function (e) {
     if (busy || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+    // Typing an email address must not fire Ready/Assist/Pass or press an answer button.
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (calls[k]) {
       busy = true;
@@ -435,18 +615,25 @@ function playPage(s, { devTools, station, report = null, reportUrl = null }) {
 
 // ---------- Shareable report (opened on the visitor's own phone) ----------
 
-function reportPage(r, { url }) {
-  const when = new Date(r.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+function reportPage(r, { url, mail = null }) {
+  const ins = buildInsights(r);
+  const mailNotice = MAIL_RESULT[mail] ? `<div class="notice ${MAIL_RESULT[mail][0]}" role="status" style="margin-bottom:12px">${esc(MAIL_RESULT[mail][1])}</div>` : '';
+  const reopen = ['invalid', 'invalid-name', 'invalid-phone'].includes(mail);
   return layout(
     `Drona report · ${r.subject.name}`,
     `<main class="screen" style="padding-bottom:32px">
-<header class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Quick Hand report<br>${esc(when)} IST</span></header>
+<header class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Quick Hand report<br>${esc(reportWhen(r))} IST</span></header>
 <section class="panel">${resultSummary(r)}</section>
+<section class="panel">${glanceSection(r, ins)}</section>
+<section class="panel">${depthSection(r, ins)}</section>
+<section class="panel">${decisionSection(r, ins)}</section>
+<section class="panel">${nextStepsSection(ins)}</section>
 <section class="panel">${questionList(r)}</section>
 <section class="panel">${classComparison(r)}</section>
 <section class="panel"><div class="eyebrow">About Drona</div>
 <p class="lead">Drona measures how students think, how they decide, and how well they know their own ability, not just whether an answer was right. Every question starts with a call: answer alone, ask for a hint, or pass.</p>
-<div class="row"><a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(shareText(r, url))}" target="_blank" rel="noopener">Share on WhatsApp</a></div></section>
+<p class="small">These analytics are worked out by fixed rules from this hand's three questions, so they are a quick snapshot, not a full assessment.</p></section>
+<section class="panel">${mailNotice}<div class="eyebrow" style="margin-bottom:10px">Email this report</div>${reportForm(`/report/${r.id}/email`, { open: reopen })}</section>
 </main>`,
   );
 }
@@ -486,6 +673,7 @@ function devIndexPage(baseUrl) {
 <li style="display:list-item"><a href="/dev/codes">Code map + QR codes</a>: all 33 tag URLs. Scan a QR with a phone to "tap" a card.</li>
 <li style="display:list-item"><a href="/dev/codes.csv">codes.csv</a>: the URLs to write onto the NFC tags.</li>
 <li style="display:list-item"><a href="/dev/log">Tap log</a>: every tap with set number and outcome.</li>
+<li style="display:list-item"><a href="/dev/emails">Saved contacts</a>: name, phone and email visitors entered, and whether the report was sent.</li>
 <li style="display:list-item"><a href="/play">Player screen</a></li>
 </ul>
 <p class="lead">Tag base URL: <code>${esc(baseUrl)}</code></p></section></main>`,
@@ -605,4 +793,18 @@ function devLogPage(entries) {
   );
 }
 
-module.exports = { playPage, reportPage, reportMissingPage, unknownCardPage, notFoundPage, devIndexPage, devDeckPage, devCodesPage, devLogPage };
+// Saved visitor emails, so the team can resend any that failed or were saved without SMTP set up.
+function devEmailsPage(records, { baseUrl, smtp }) {
+  const body = records
+    .map((e) => `<tr><td><code>${esc(e.ts)}</code></td><td>${esc(e.name || '')}</td><td>${esc(e.phone || '')}</td><td>${esc(e.email)}</td><td>${esc(e.source)}</td>
+<td>${esc(e.status)}${e.error ? `<br><span class="small">${esc(e.error)}</span>` : ''}</td><td><a href="${esc(`${baseUrl}/report/${e.reportId}`)}" target="_blank"><code>${esc(e.reportId)}</code></a></td></tr>`)
+    .join('');
+  return layout(
+    'Drona Deck contacts',
+    `<div style="padding:16px;max-width:1100px;margin:0 auto"><div class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Saved contacts · <a href="/dev/emails.csv">CSV</a> · <a href="/dev">Tools</a></span></div>
+<p class="lead">Sending: <b>${smtp ? 'on (SMTP set up)' : 'off. Set SMTP_HOST to send. Details are still saved'}</b>. Personal data: delete <code>logs/emails.jsonl</code> after the event.</p>
+<div style="overflow-x:auto"><table><thead><tr><th>Time (UTC)</th><th>Name</th><th>Phone</th><th>Email</th><th>From</th><th>Status</th><th>Report</th></tr></thead><tbody>${body || '<tr><td colspan="7">No contacts yet.</td></tr>'}</tbody></table></div></div>`,
+  );
+}
+
+module.exports = { playPage, reportPage, reportEmail, reportMissingPage, unknownCardPage, notFoundPage, devIndexPage, devDeckPage, devCodesPage, devLogPage, devEmailsPage, MAIL_RESULT };

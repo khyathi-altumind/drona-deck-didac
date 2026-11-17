@@ -1,4 +1,4 @@
-# Drona Deck · DIDAC booth
+﻿# Drona Deck Â· DIDAC booth
 
 NFC card flow for the Drona Deck (print kit spec v2), built for **Science and Civics** (all four skills).
 Each NFC tag holds a plain URL, and tapping a card opens that URL in the phone's browser. **So opening a URL in the
@@ -8,7 +8,7 @@ write the URLs onto the tags.
 No dependencies. Needs Node 20+.
 
 ```
-npm test        # 44 automated tests (state machine + real HTTP flow)
+npm test        # 59 automated tests (state machine + real HTTP flow)
 npm start       # dev mode: player + simulator + code map + tap log
 npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 ```
@@ -29,9 +29,9 @@ npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 ## Game flow (one "Quick Hand")
 
 1. **Tap a subject card**: Science or Civics.
-2. **Tap a level card**: Easy or Tough (NFC only, no screen buttons). Easy plays levels 1–3, Tough plays levels 4–6.
-   Civics has one question per level, so its hands follow a fixed order: Easy = questions 1 → 2 → 3,
-   Tough = questions 4 → 5 → 6, whatever the visitor answers.
+2. **Tap a level card**: Easy or Tough (NFC only, no screen buttons). Easy plays levels 1â€“3, Tough plays levels 4â€“6.
+   Civics has one question per level, so its hands follow a fixed order: Easy = questions 1 â†’ 2 â†’ 3,
+   Tough = questions 4 â†’ 5 â†’ 6, whatever the visitor answers.
 3. **Tap a skill card**: Depth, Stretch, Untangle or Pivot. A skill card tapped earlier is remembered,
    so the hand starts as soon as the level is picked.
 4. **Three questions.** Each one shows first, then the visitor taps a call chip:
@@ -41,12 +41,42 @@ npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 
    A wrong answer drops one level. Levels never leave the Easy or Tough band. (Civics follows its fixed order.)
    Right/wrong is **not** shown during the hand.
-5. **Estimate**: "How many do you think you got right?" (0–3).
+5. **Estimate**: "How many do you think you got right?" (0â€“3).
 6. **Result**: score, guess vs. actual (calibration), points, and a message per call (spec 11.2).
 7. **Compared with the class**: score spread, how many guessed their own score, and the Ready/Assist/Pass mix.
    The class is an illustrative Grade 8 class of 40, always labelled **Sample data** (spec 11.4).
-8. **Share report**: QR code (scan with a phone), WhatsApp, email or copy link. The report opens at
+8. **Share report**: QR code (scan with a phone), "Get my complete report" (email) or copy link. The report opens at
    `/report/<id>` on any device.
+
+The report adds rule-based analytics (`server/insights.js`, no AI or network calls): **At a glance**, **Thinking
+depth** (level-weighted score /100 and the six-level ladder), **Decision-making** (each call + outcome rated
+good / partial / needs a rethink) and **Strengths, focus areas and next steps**.
+
+### Get my complete report
+
+The Result screen is a **preview** (score + At a glance). Below it, **Get my complete report** opens a pop-up form
+asking for **name, phone number and email** (also on the Share screen and on the report page on the visitor's phone).
+The server **first saves all three** (`logs/emails.jsonl`), then **emails the complete report** over SMTP: an HTML
+email greeting the visitor by name, with the four analytics sections and a link to the full report, plus a plain-text
+copy (`server/mailer.js`, no npm packages). A missing name, bad phone (7-15 digits, optional +) or bad email re-opens the form.
+
+- No `SMTP_HOST` set: contact details are still saved (status `not-configured`), and nothing is sent.
+- Send fails: the address stays saved with status `failed` and the error.
+- `/dev/emails` (and `/dev/emails.csv`) lists every name, phone and email with its send status, so the team can follow up.
+- A report can be emailed at most `EMAILS_PER_REPORT` times (default 3). The booth screen shows only a masked
+  address (`stâ€¢â€¢â€¢â€¢@example.com`) and never autofills, so the next visitor cannot see it.
+- These details are personal data: delete `logs/emails.jsonl` after the event.
+
+Locally, put the mail settings in `didac/.env` (copy `.env.example`; git ignores `.env`). Real environment variables,
+such as Render's dashboard settings, override the file. Or set them in the shell.
+Gmail / Google Workspace example (needs 2-step verification and an [app password](https://myaccount.google.com/apppasswords)):
+
+```powershell
+$env:SMTP_HOST="smtp.gmail.com"; $env:SMTP_PORT="587"; $env:SMTP_USER="reports@yourschool.org"
+$env:SMTP_PASS="<16-letter app password>"; $env:MAIL_FROM="Drona <reports@yourschool.org>"; npm start
+```
+
+Port 587 upgrades with STARTTLS; port 465 uses TLS from the start. A password is never sent without TLS.
 
 After a hand: tap another skill card to play again in the same subject and level, tap a subject card to start
 fresh, or press **New player**. The Rules card resets at any time. During a hand, subject and skill cards are
@@ -57,7 +87,7 @@ Options are shuffled every time a question is served, so the right answer is not
 ## Question bank
 
 - `engine/bank-science-forces.js`: all 24 items of the DIDAC Science Pool, Class 8 "Exploring Forces". These are
-  the **only** Science questions in play: one per skill and level (L1–L6). Science keeps the adaptive ladder; when
+  the **only** Science questions in play: one per skill and level (L1â€“L6). Science keeps the adaptive ladder; when
   the level it moves to is already used in the hand, the engine serves the nearest unused level in the band, so a
   hand never repeats a question.
 - The older Science items (`SCIENCE_DEPTH` in `engine/bank.js`, and `engine/bank-science.js`) are kept on disk but
@@ -88,24 +118,31 @@ and are marked `review: 'approved'`.
 | `DEV_TOOLS` | `true` | `/dev/*` pages and the DEV TAP bar |
 | `LOG_FILE` | `logs/taps.jsonl` | One JSON line per tap |
 | `REPORT_FILE` | `logs/reports.jsonl` | Finished-hand reports, reloaded on start so shared links keep working |
+| `EMAIL_FILE` | `logs/emails.jsonl` | Visitor email addresses and send status |
+| `SMTP_HOST` | (unset) | Mail server. Unset = save addresses only, send nothing |
+| `SMTP_PORT` | `587` | `587` (STARTTLS) or `465` (TLS) |
+| `SMTP_SECURE` | `true` when port is 465 | Force TLS from the start |
+| `SMTP_USER` / `SMTP_PASS` | (unset) | Mail account login |
+| `MAIL_FROM` | `SMTP_USER` | Sender, e.g. `Drona <reports@yourschool.org>` |
+| `EMAILS_PER_REPORT` | `3` | Most times one report can be emailed |
 
 PowerShell example: `$env:BASE_URL="http://192.168.1.20:4300"; npm start`
 
 ## Testing without cards
 
-1. **Automated:** run `npm test`. All 44 should pass.
+1. **Automated:** run `npm test`. All 59 should pass.
 2. **Simulator (laptop):** open http://localhost:4300/dev/deck. Click card buttons, and the phone frame loads the exact tag URL.
    The live session state and tap log show alongside.
 3. **Real phone (closest to a real NFC tap):** open http://localhost:4300/dev/codes on the laptop and scan the QR codes with
-   a phone on the same Wi‑Fi. If the phone can't load the page, check that `BASE_URL` shows your Wi‑Fi IP (`ipconfig`) and
+   a phone on the same Wiâ€‘Fi. If the phone can't load the page, check that `BASE_URL` shows your Wiâ€‘Fi IP (`ipconfig`) and
    that Windows Firewall allows Node on private networks.
 4. **Log check:** open http://localhost:4300/dev/log, or `logs/taps.jsonl`.
 
 ## Deploying on Render
 
-`render.yaml` sets up a free Node web service. On render.com go to **New → Blueprint**, pick this repo and click **Apply**.
+`render.yaml` sets up a free Node web service. On render.com go to **New â†’ Blueprint**, pick this repo and click **Apply**.
 The app uses Render's https URL (`RENDER_EXTERNAL_URL`) for the code map and QR codes automatically.
-The free plan sleeps after 15 minutes idle, so the first request then takes about 30–50 s. Use a paid instance for the event.
+The free plan sleeps after 15 minutes idle, so the first request then takes about 30â€“50 s. Use a paid instance for the event.
 The tap log and the saved reports reset on every deploy or restart there, so shared report links from before a restart stop working.
 
 ## When the cards arrive
@@ -113,15 +150,15 @@ The tap log and the saved reports reset on every deploy or restart there, so sha
 1. Deploy to the real domain over **HTTPS** (iPhones only open NFC URL tags in the background for https), and start it
    with `BASE_URL=https://<domain>` and `DEV_TOOLS=false`.
 2. Download `/dev/codes.csv` (run once with dev tools on and the final `BASE_URL`) for the URL list.
-3. In **NFC Tools** (Android/iOS), use *Write → Add a record → URL* with the card's URL. Read it back to check, then *Other → Lock tag*.
+3. In **NFC Tools** (Android/iOS), use *Write â†’ Add a record â†’ URL* with the card's URL. Read it back to check, then *Other â†’ Lock tag*.
    Lock only after the read-back works, because locking can't be undone.
-4. Smoke test per set: Rules → Civics → Easy card → Depth → three calls → estimate → result → class → share (scan the QR), on one Android and one iPhone.
+4. Smoke test per set: Rules â†’ Civics â†’ Easy card â†’ Depth â†’ three calls â†’ estimate â†’ result â†’ class â†’ share (scan the QR), on one Android and one iPhone.
    In `/dev/log` (or `logs/taps.jsonl`) every line should show the right `set`.
 
 ## Layout
 
 ```
-engine/   question engine; banks: bank.js (Science × Depth), bank-science.js, bank-civics.js, bank-history.js (not live)
+engine/   question engine; banks: bank.js (Science Ã— Depth), bank-science.js, bank-civics.js, bank-history.js (not live)
 server/   app.js (routes), state.js (game state machine), codes.js (code map),
           sessions.js, tapLog.js, views.js (HTML), config.js
 tests/    state.test.js, routes.test.js

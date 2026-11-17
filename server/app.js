@@ -7,6 +7,28 @@ const { TapLog } = require('./tapLog');
 const state = require('./state');
 const views = require('./views');
 const { buildReport, ReportStore } = require('./report');
+const { EmailStore } = require('./emails');
+const { createMailer, validEmail } = require('./mailer');
+
+// Shows enough of an address on the shared booth screen to confirm it, not enough for the next visitor to read it.
+function maskEmail(email) {
+  const [user, domain] = email.split('@');
+  return `${user.slice(0, 2)}${'•'.repeat(Math.max(1, Math.min(6, user.length - 2)))}@${domain}`;
+}
+
+// A visitor's name: 1-80 characters, no control characters (it goes into the email greeting).
+function cleanName(v) {
+  const name = String(v || '').trim().replace(/\s+/g, ' ');
+  return name.length >= 1 && name.length <= 80 && !/[\u0000-\u001f\u007f<>]/.test(name) ? name : null;
+}
+
+// A phone number: 7-15 digits, an optional leading +; spaces, dashes, dots and brackets are dropped.
+function cleanPhone(v) {
+  const phone = String(v || '').trim().replace(/[\s().-]/g, '');
+  return /^\+?\d{7,15}$/.test(phone) ? phone : null;
+}
+
+const INVALID = new Set(['invalid', 'invalid-name', 'invalid-phone']);
 
 const SCREEN_ACTIONS = new Set(['/answer', '/estimate', '/goto', '/new']);
 
@@ -45,6 +67,34 @@ function createApp(overrides = {}) {
   const sessions = new SessionStore({ idleTimeoutMs: cfg.IDLE_TIMEOUT_MS });
   const tapLog = new TapLog({ file: cfg.LOG_FILE });
   const reports = new ReportStore({ file: cfg.REPORT_FILE });
+  const emails = new EmailStore({ file: cfg.EMAIL_FILE });
+  // Tests pass a fake mailer; null means SMTP is not set up (addresses are saved, nothing is sent).
+  const mailer = 'mailer' in overrides ? overrides.mailer : createMailer(cfg);
+
+  // Saves the visitor's name, phone and email first, then sends the report to the email. Returns a MAIL_RESULT key.
+  async function emailReport(report, body, source) {
+    const name = cleanName(body.get('name'));
+    if (!name) return 'invalid-name';
+    const phone = cleanPhone(body.get('phone'));
+    if (!phone) return 'invalid-phone';
+    const email = String(body.get('email') || '').trim();
+    if (!validEmail(email)) return 'invalid';
+    if (emails.countFor(report.id) >= cfg.EMAILS_PER_REPORT) return 'limit';
+    const rec = emails.add({ reportId: report.id, name, phone, email, source, ts: new Date(now()).toISOString() });
+    if (!mailer) {
+      emails.update(rec.id, { status: 'not-configured' });
+      return 'saved';
+    }
+    try {
+      await mailer.send({ to: email, ...views.reportEmail(report, `${cfg.BASE_URL}/report/${report.id}`, { name }) });
+      emails.update(rec.id, { status: 'sent', sentAt: new Date(now()).toISOString() });
+      return 'sent';
+    } catch (err) {
+      console.error('[mail] send failed:', err.message);
+      emails.update(rec.id, { status: 'failed', error: err.message });
+      return 'failed';
+    }
+  }
 
   // On-screen buttons (answers, estimate, end screens) post here. Easy/Tough are NFC cards only.
   function screenAction(s, p, body) {
@@ -151,7 +201,39 @@ function createApp(overrides = {}) {
       const reportUrl = report ? `${cfg.BASE_URL}/report/${report.id}` : null;
       const html = views.playPage(s, { devTools: cfg.DEV_TOOLS, station, report, reportUrl });
       s.notice = null; // notices show once
+      s.openForm = false;
       return send(res, 200, html);
+    }
+
+    // Booth share screen: email the report of the hand just played.
+    if (method === 'POST' && p === '/email') {
+      const t = now();
+      const { session: s } = loadSession(req, res, t);
+      const body = await readBody(req);
+      s.updatedAt = t;
+      const report = s.reportId ? reports.get(s.reportId) : null;
+      if (!report) {
+        s.notice = { tone: 'warn', text: 'Finish a hand first, then you can email its report.' };
+        return redirect(res, '/play');
+      }
+      const outcome = await emailReport(report, body, 'booth');
+      const [tone, text] = views.MAIL_RESULT[outcome];
+      const who = outcome === 'sent' || outcome === 'saved' || outcome === 'failed' ? ` (${maskEmail(String(body.get('email')).trim())})` : '';
+      s.notice = { tone, text: text + who };
+      // Re-open the form so the visitor can fix the field. Nothing is prefilled on the shared device.
+      s.openForm = INVALID.has(outcome);
+      tapLog.add({ ts: new Date(t).toISOString(), sid: s.sid, path: p, outcome: `email-${outcome}`, phase: s.phase, level: s.level });
+      return redirect(res, '/play');
+    }
+
+    // Report page on the visitor's own phone. The result goes in the query, never the address.
+    const emailMatch = /^\/report\/([A-Za-z0-9_-]{4,32})\/email\/?$/.exec(p);
+    if (method === 'POST' && emailMatch) {
+      const report = reports.get(emailMatch[1]);
+      if (!report) return send(res, 404, views.reportMissingPage());
+      const body = await readBody(req);
+      const outcome = await emailReport(report, body, 'report-page');
+      return redirect(res, `/report/${report.id}?mail=${outcome}#email`);
     }
 
     if (method === 'POST' && SCREEN_ACTIONS.has(p)) {
@@ -175,12 +257,12 @@ function createApp(overrides = {}) {
       return redirect(res, '/play');
     }
 
-    // Shareable report: opened on the visitor's own phone from the QR code, WhatsApp or email link.
+    // Shareable report: opened on the visitor's own phone from the QR code or the email link.
     const reportMatch = /^\/report\/([A-Za-z0-9_-]{4,32})\/?$/.exec(p);
     if (method === 'GET' && reportMatch) {
       const report = reports.get(reportMatch[1]);
       if (!report) return send(res, 404, views.reportMissingPage());
-      return send(res, 200, views.reportPage(report, { url: `${cfg.BASE_URL}/report/${report.id}` }));
+      return send(res, 200, views.reportPage(report, { url: `${cfg.BASE_URL}/report/${report.id}`, mail: url.searchParams.get('mail') }));
     }
 
     if (method === 'GET' && p === '/health') {
@@ -204,6 +286,12 @@ function createApp(overrides = {}) {
     if (p === '/dev') return send(res, 200, views.devIndexPage(cfg.BASE_URL));
     if (p === '/dev/deck') return send(res, 200, views.devDeckPage());
     if (p === '/dev/log') return send(res, 200, views.devLogPage(tapLog.recent(200)));
+    if (p === '/dev/emails') return send(res, 200, views.devEmailsPage(emails.recent(500), { baseUrl: cfg.BASE_URL, smtp: Boolean(mailer) }));
+    if (p === '/dev/emails.csv') {
+      const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const rows = emails.recent(100000).reverse().map((e) => [e.ts, e.name, e.phone, e.email, e.source, e.status, e.error, `${cfg.BASE_URL}/report/${e.reportId}`].map(q).join(','));
+      return send(res, 200, ['time,name,phone,email,source,status,error,report', ...rows].join('\n') + '\n', 'text/csv; charset=utf-8', { 'Content-Disposition': 'attachment; filename="drona-contacts.csv"' });
+    }
     if (p === '/dev/codes') {
       const set = Number(url.searchParams.get('set')) || null;
       return send(res, 200, views.devCodesPage(codeMap(cfg.BASE_URL), cfg.BASE_URL, set));
@@ -236,7 +324,7 @@ function createApp(overrides = {}) {
   sweeper.unref();
   server.on('close', () => clearInterval(sweeper));
 
-  return { server, sessions, tapLog, reports, cfg };
+  return { server, sessions, tapLog, reports, emails, cfg };
 }
 
 module.exports = { createApp };
