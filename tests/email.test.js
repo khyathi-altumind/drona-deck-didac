@@ -184,3 +184,4 @@ test('address check and message format', () => {
   assert.match(msg, /multipart\/alternative/);
   assert.match(msg, /text\/plain; charset=utf-8[\s\S]*text\/html; charset=utf-8/);
 });
+

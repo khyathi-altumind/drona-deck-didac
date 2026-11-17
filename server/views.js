@@ -389,6 +389,7 @@ function reportForm(action, { booth = false, open = false } = {}) {
   btn.addEventListener('click', show);
   dlg.querySelector('[data-close]').addEventListener('click', function () { if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); });
   if (btn.dataset.open) show();
+
 })();
 </script>`;
 }

@@ -32,7 +32,7 @@ class EmailStore {
   }
 
   add({ reportId, name, phone, email, source, ts }) {
-    const rec = { id: crypto.randomBytes(6).toString('base64url'), ts, reportId, name, phone, email, source, status: 'saved' };
+    const rec = { id: crypto.randomBytes(9).toString('base64url'), ts, reportId, name, phone, email, source, status: 'saved' };
     this.records.set(rec.id, rec);
     this.write(rec);
     return rec;

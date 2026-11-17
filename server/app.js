@@ -71,16 +71,23 @@ function createApp(overrides = {}) {
   // Tests pass a fake mailer; null means SMTP is not set up (addresses are saved, nothing is sent).
   const mailer = 'mailer' in overrides ? overrides.mailer : createMailer(cfg);
 
-  // Saves the visitor's name, phone and email first, then sends the report to the email. Returns a MAIL_RESULT key.
-  async function emailReport(report, body, source) {
+  // Checks and saves the visitor's name, phone and email. Returns { error } (a MAIL_RESULT key) or { rec }.
+  function saveContact(report, body, source) {
     const name = cleanName(body.get('name'));
-    if (!name) return 'invalid-name';
+    if (!name) return { error: 'invalid-name' };
     const phone = cleanPhone(body.get('phone'));
-    if (!phone) return 'invalid-phone';
+    if (!phone) return { error: 'invalid-phone' };
     const email = String(body.get('email') || '').trim();
-    if (!validEmail(email)) return 'invalid';
-    if (emails.countFor(report.id) >= cfg.EMAILS_PER_REPORT) return 'limit';
-    const rec = emails.add({ reportId: report.id, name, phone, email, source, ts: new Date(now()).toISOString() });
+    if (!validEmail(email)) return { error: 'invalid' };
+    if (emails.countFor(report.id) >= cfg.EMAILS_PER_REPORT) return { error: 'limit' };
+    return { rec: emails.add({ reportId: report.id, name, phone, email, source, ts: new Date(now()).toISOString() }) };
+  }
+
+  // Saves the visitor's details first, then emails them the report over SMTP. Returns a MAIL_RESULT key.
+  async function emailReport(report, body, source) {
+    const { error, rec } = saveContact(report, body, source);
+    if (error) return error;
+    const { name, email } = rec;
     if (!mailer) {
       emails.update(rec.id, { status: 'not-configured' });
       return 'saved';
@@ -235,6 +242,7 @@ function createApp(overrides = {}) {
       const outcome = await emailReport(report, body, 'report-page');
       return redirect(res, `/report/${report.id}?mail=${outcome}#email`);
     }
+
 
     if (method === 'POST' && SCREEN_ACTIONS.has(p)) {
       const t = now();

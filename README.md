@@ -69,12 +69,16 @@ copy (`server/mailer.js`, no npm packages). A missing name, bad phone (7-15 digi
 
 Locally, put the mail settings in `didac/.env` (copy `.env.example`; git ignores `.env`). Real environment variables,
 such as Render's dashboard settings, override the file. Or set them in the shell.
-Gmail / Google Workspace example (needs 2-step verification and an [app password](https://myaccount.google.com/apppasswords)):
+The booth sends from the Microsoft 365 mailbox `hello@Dronafy.com`:
 
 ```powershell
-$env:SMTP_HOST="smtp.gmail.com"; $env:SMTP_PORT="587"; $env:SMTP_USER="reports@yourschool.org"
-$env:SMTP_PASS="<16-letter app password>"; $env:MAIL_FROM="Drona <reports@yourschool.org>"; npm start
+$env:SMTP_HOST="smtp.office365.com"; $env:SMTP_PORT="587"; $env:SMTP_USER="hello@Dronafy.com"
+$env:SMTP_PASS="<mailbox password>"; $env:MAIL_FROM="Drona <hello@Dronafy.com>"; npm start
 ```
+
+Microsoft 365 needs **Authenticated SMTP** switched on for that mailbox (Microsoft 365 admin center → Users →
+the user → Mail → Manage email apps), and `MAIL_FROM` must be the same address as `SMTP_USER`.
+Gmail also works: `smtp.gmail.com` with a Google [app password](https://myaccount.google.com/apppasswords).
 
 Port 587 upgrades with STARTTLS; port 465 uses TLS from the start. A password is never sent without TLS.
 
@@ -163,3 +167,8 @@ server/   app.js (routes), state.js (game state machine), codes.js (code map),
           sessions.js, tapLog.js, views.js (HTML), config.js
 tests/    state.test.js, routes.test.js
 ```
+
+## Checking the mail login
+
+After setting `SMTP_PASS`, run `npm run mail-test -- you@example.com`. It sends one test email with the same
+settings the booth uses and prints the SMTP error if the login fails.

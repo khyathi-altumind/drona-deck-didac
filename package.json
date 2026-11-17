@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node server/index.js",
     "booth": "node -e \"process.env.DEV_TOOLS='false'; require('./server/index.js')\"",
-    "test": "node --test"
+    "test": "node --test",
+    "mail-test": "node scripts/send-test-mail.js"
   }
 }

@@ -14,7 +14,7 @@ services:
       - key: DEV_TOOLS
         value: "false"
       # Leave BASE_URL unset to use the Render URL. Set it once you have the final domain for the tags.
-      # Outgoing mail for "Email my report". Fill these in the Render dashboard (they are secrets).
+      # Outgoing mail for the complete report (Microsoft 365: smtp.office365.com, port 587). Fill these in the Render dashboard (they are secrets).
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
