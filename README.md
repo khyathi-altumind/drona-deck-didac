@@ -8,7 +8,7 @@ write the URLs onto the tags.
 No dependencies. Needs Node 20+.
 
 ```
-npm test        # 59 automated tests (state machine + real HTTP flow)
+npm test        # 60 automated tests (state machine + real HTTP flow)
 npm start       # dev mode: player + simulator + code map + tap log
 npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 ```
@@ -128,13 +128,15 @@ and are marked `review: 'approved'`.
 | `SMTP_SECURE` | `true` when port is 465 | Force TLS from the start |
 | `SMTP_USER` / `SMTP_PASS` | (unset) | Mail account login |
 | `MAIL_FROM` | `SMTP_USER` | Sender, e.g. `Drona <reports@yourschool.org>` |
+| `SHEET_WEBHOOK_URL` | (unset) | Google Apps Script web app that adds each visitor to a Google Sheet |
+| `SHEET_SECRET` | (unset) | Must match `SECRET` in `scripts/google-sheet.gs` |
 | `EMAILS_PER_REPORT` | `3` | Most times one report can be emailed |
 
 PowerShell example: `$env:BASE_URL="http://192.168.1.20:4300"; npm start`
 
 ## Testing without cards
 
-1. **Automated:** run `npm test`. All 59 should pass.
+1. **Automated:** run `npm test`. All 60 should pass.
 2. **Simulator (laptop):** open http://localhost:4300/dev/deck. Click card buttons, and the phone frame loads the exact tag URL.
    The live session state and tap log show alongside.
 3. **Real phone (closest to a real NFC tap):** open http://localhost:4300/dev/codes on the laptop and scan the QR codes with
@@ -172,3 +174,17 @@ tests/    state.test.js, routes.test.js
 
 After setting `SMTP_PASS`, run `npm run mail-test -- you@example.com`. It sends one test email with the same
 settings the booth uses and prints the SMTP error if the login fails.
+
+## Google Sheet of visitors
+
+Every completed form (name, phone, email, subject/skill/level, score, guess, email status, report link) is also
+added as a row to a Google Sheet, because Render's disk is wiped on every restart. A sheet error never stops the
+visitor getting their report; `logs/emails.jsonl` records `sheet: saved` or `sheet: failed` per visitor.
+
+1. Create a Google Sheet. **Extensions → Apps Script**, paste `scripts/google-sheet.gs`, and change `SECRET` to a
+   long random value.
+2. **Deploy → New deployment → Web app**, Execute as **Me**, Who has access **Anyone**. Authorise, copy the URL.
+3. Set `SHEET_WEBHOOK_URL` (the URL) and `SHEET_SECRET` (the same secret) in `.env` and in Render's dashboard.
+
+The header row is added on the first visitor. After editing the script, use **Manage deployments → Edit → New
+version** so the same URL picks up the change.

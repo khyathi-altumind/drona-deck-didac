@@ -185,3 +185,33 @@ test('address check and message format', () => {
   assert.match(msg, /text\/plain; charset=utf-8[\s\S]*text\/html; charset=utf-8/);
 });
 
+
+test('each visitor is added to the Google Sheet with the send result; a sheet error does not block them', async (t) => {
+  const mailer = fakeMailer();
+  const rows = [];
+  const sheet = { fail: false, async add(row) { if (this.fail) throw new Error('sheet down'); rows.push(row); } };
+  const { app, base, clock, close } = await boot({ mailer, sheet });
+  t.after(close);
+  const b = browser(base, clock);
+  const reportId = await finishHand(b);
+
+  await b.post('/email', { name: 'Asha Rao', phone: '+91 98765 43210', email: 'a@example.com' });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].name, 'Asha Rao');
+  assert.equal(rows[0].phone, '+919876543210');
+  assert.equal(rows[0].email, 'a@example.com');
+  assert.equal(rows[0].status, 'sent');
+  assert.equal(rows[0].subject, 'Science');
+  assert.equal(rows[0].score, '3/3');
+  assert.equal(rows[0].report, `https://drona.example/report/${reportId}`);
+  assert.equal(app.emails.recent()[0].sheet, 'saved');
+
+  await b.post('/email', { name: 'Not Valid', phone: '1', email: 'b@example.com' });
+  assert.equal(rows.length, 1, 'invalid details never reach the sheet');
+
+  sheet.fail = true;
+  await b.post('/email', { ...who, email: 'c@example.com' });
+  assert.equal(app.emails.recent()[0].sheet, 'failed');
+  assert.equal(app.emails.recent()[0].status, 'sent', 'the report is still sent');
+  assert.match(await b.page(), /Report sent/);
+});

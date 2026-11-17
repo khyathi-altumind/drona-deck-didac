@@ -51,6 +51,9 @@ module.exports = {
   SMTP_USER: process.env.SMTP_USER || '',
   SMTP_PASS: process.env.SMTP_PASS || '',
   MAIL_FROM: process.env.MAIL_FROM || process.env.SMTP_USER || 'Drona <no-reply@localhost>',
+  // Google Sheet that keeps every visitor's details (Apps Script web app URL, see scripts/google-sheet.gs).
+  SHEET_WEBHOOK_URL: process.env.SHEET_WEBHOOK_URL || '',
+  SHEET_SECRET: process.env.SHEET_SECRET || '',
   // A report can be emailed at most this many times (stops the form being used to spam an address).
   EMAILS_PER_REPORT: Number(process.env.EMAILS_PER_REPORT) || 3,
 };

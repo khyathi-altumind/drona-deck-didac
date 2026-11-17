@@ -9,6 +9,7 @@ const views = require('./views');
 const { buildReport, ReportStore } = require('./report');
 const { EmailStore } = require('./emails');
 const { createMailer, validEmail } = require('./mailer');
+const { createSheet } = require('./sheet');
 
 // Shows enough of an address on the shared booth screen to confirm it, not enough for the next visitor to read it.
 function maskEmail(email) {
@@ -70,6 +71,26 @@ function createApp(overrides = {}) {
   const emails = new EmailStore({ file: cfg.EMAIL_FILE });
   // Tests pass a fake mailer; null means SMTP is not set up (addresses are saved, nothing is sent).
   const mailer = 'mailer' in overrides ? overrides.mailer : createMailer(cfg);
+  // Tests pass a fake sheet; null means no Google Sheet is set up (details stay in logs/emails.jsonl only).
+  const sheet = 'sheet' in overrides ? overrides.sheet : createSheet(cfg);
+
+  // Adds the visitor to the Google Sheet once the send result is known. A sheet error never blocks the visitor.
+  async function toSheet(report, rec) {
+    if (!sheet) return;
+    try {
+      await sheet.add({
+        time: new Date(rec.ts).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        name: rec.name, phone: rec.phone, email: rec.email,
+        subject: report.subject.name, skill: report.skill.name, level: report.difficulty.name,
+        score: `${report.correct}/${report.total}`, guess: report.estimate,
+        status: rec.status, source: rec.source, report: `${cfg.BASE_URL}/report/${report.id}`,
+      });
+      emails.update(rec.id, { sheet: 'saved' });
+    } catch (err) {
+      console.error('[sheet] save failed:', err.message);
+      emails.update(rec.id, { sheet: 'failed', sheetError: err.message });
+    }
+  }
 
   // Checks and saves the visitor's name, phone and email. Returns { error } (a MAIL_RESULT key) or { rec }.
   function saveContact(report, body, source) {
@@ -87,13 +108,18 @@ function createApp(overrides = {}) {
   async function emailReport(report, body, source) {
     const { error, rec } = saveContact(report, body, source);
     if (error) return error;
-    const { name, email } = rec;
+    const outcome = await sendReport(report, rec);
+    await toSheet(report, rec);
+    return outcome;
+  }
+
+  async function sendReport(report, rec) {
     if (!mailer) {
       emails.update(rec.id, { status: 'not-configured' });
       return 'saved';
     }
     try {
-      await mailer.send({ to: email, ...views.reportEmail(report, `${cfg.BASE_URL}/report/${report.id}`, { name }) });
+      await mailer.send({ to: rec.email, ...views.reportEmail(report, `${cfg.BASE_URL}/report/${report.id}`, { name: rec.name }) });
       emails.update(rec.id, { status: 'sent', sentAt: new Date(now()).toISOString() });
       return 'sent';
     } catch (err) {
