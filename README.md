@@ -8,7 +8,7 @@ write the URLs onto the tags.
 No dependencies. Needs Node 20+.
 
 ```
-npm test        # 60 automated tests (state machine + real HTTP flow)
+npm test        # 61 automated tests (state machine + real HTTP flow)
 npm start       # dev mode: player + simulator + code map + tap log
 npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 ```
@@ -59,6 +59,10 @@ asking for **name, phone number and email** (also on the Share screen and on the
 The server **first saves all three** (`logs/emails.jsonl`), then **emails the complete report** over SMTP: an HTML
 email greeting the visitor by name, with the four analytics sections and a link to the full report, plus a plain-text
 copy (`server/mailer.js`, no npm packages). A missing name, bad phone (7-15 digits, optional +) or bad email re-opens the form.
+
+**Resend (used on Render).** Render's free plan blocks outgoing SMTP, so with `RESEND_API_KEY` set the server
+sends through Resend's HTTPS API instead (`server/mailer.js`, no npm packages). `MAIL_FROM` must be on a domain
+verified in Resend: add `dronafy.com` under Resend → Domains and create the DNS records it lists at GoDaddy.
 
 - No `SMTP_HOST` set: contact details are still saved (status `not-configured`), and nothing is sent.
 - Send fails: the address stays saved with status `failed` and the error.
@@ -130,13 +134,15 @@ and are marked `review: 'approved'`.
 | `MAIL_FROM` | `SMTP_USER` | Sender, e.g. `Drona <reports@yourschool.org>` |
 | `SHEET_WEBHOOK_URL` | (unset) | Google Apps Script web app that adds each visitor to a Google Sheet |
 | `SHEET_SECRET` | (unset) | Must match `SECRET` in `scripts/google-sheet.gs` |
+| `RESEND_API_KEY` | (unset) | Resend API key. Set = send via Resend's HTTPS API; unset = SMTP |
+| `MAIL_REPLY_TO` | (unset) | Reply-To on report emails, e.g. `hello@Dronafy.com` |
 | `EMAILS_PER_REPORT` | `3` | Most times one report can be emailed |
 
 PowerShell example: `$env:BASE_URL="http://192.168.1.20:4300"; npm start`
 
 ## Testing without cards
 
-1. **Automated:** run `npm test`. All 60 should pass.
+1. **Automated:** run `npm test`. All 61 should pass.
 2. **Simulator (laptop):** open http://localhost:4300/dev/deck. Click card buttons, and the phone frame loads the exact tag URL.
    The live session state and tap log show alongside.
 3. **Real phone (closest to a real NFC tap):** open http://localhost:4300/dev/codes on the laptop and scan the QR codes with
@@ -172,7 +178,7 @@ tests/    state.test.js, routes.test.js
 
 ## Checking the mail login
 
-After setting `SMTP_PASS`, run `npm run mail-test -- you@example.com`. It sends one test email with the same
+After setting `RESEND_API_KEY` (or `SMTP_PASS`), run `npm run mail-test -- you@example.com`. It sends one test email with the same
 settings the booth uses and prints the SMTP error if the login fails.
 
 ## Google Sheet of visitors

@@ -51,6 +51,10 @@ module.exports = {
   SMTP_USER: process.env.SMTP_USER || '',
   SMTP_PASS: process.env.SMTP_PASS || '',
   MAIL_FROM: process.env.MAIL_FROM || process.env.SMTP_USER || 'Drona <no-reply@localhost>',
+  // Resend HTTPS API key. When set, reports go through Resend instead of SMTP (Render's free plan blocks SMTP).
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+  // Optional Reply-To address for report emails.
+  MAIL_REPLY_TO: process.env.MAIL_REPLY_TO || '',
   // Google Sheet that keeps every visitor's details (Apps Script web app URL, see scripts/google-sheet.gs).
   SHEET_WEBHOOK_URL: process.env.SHEET_WEBHOOK_URL || '',
   SHEET_SECRET: process.env.SHEET_SECRET || '',

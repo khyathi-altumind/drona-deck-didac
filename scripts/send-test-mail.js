@@ -10,10 +10,10 @@ if (!validEmail(to || '')) {
 }
 const mailer = createMailer({ ...cfg, SMTP_TIMEOUT_MS: 30000 });
 if (!mailer) {
-  console.error('SMTP_HOST is not set (check didac/.env).');
+  console.error('Neither RESEND_API_KEY nor SMTP_HOST is set (check didac/.env).');
   process.exit(1);
 }
-console.log(`Sending a test email via ${cfg.SMTP_HOST}:${cfg.SMTP_PORT} as ${cfg.SMTP_USER} to ${to} ...`);
+console.log(`Sending a test email via ${mailer.provider === 'resend' ? 'Resend API' : `${cfg.SMTP_HOST}:${cfg.SMTP_PORT} as ${cfg.SMTP_USER}`} from ${cfg.MAIL_FROM} to ${to} ...`);
 mailer
   .send({ to, subject: 'Drona booth: test email', text: 'SMTP works. Reports will be sent from this address.', html: '<p>SMTP works. Reports will be sent from this address.</p>' })
   .then(() => console.log('Sent. Check the inbox (and spam).'))

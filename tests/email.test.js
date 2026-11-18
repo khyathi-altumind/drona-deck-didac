@@ -215,3 +215,22 @@ test('each visitor is added to the Google Sheet with the send result; a sheet er
   assert.equal(app.emails.recent()[0].status, 'sent', 'the report is still sent');
   assert.match(await b.page(), /Report sent/);
 });
+
+test('Resend: the report goes to the Resend HTTPS API with the API key; API errors are reported', async () => {
+  const { createResendMailer, createMailer } = require('../server/mailer');
+  const calls = [];
+  const ok = async (url, opts) => { calls.push({ url, opts }); return { ok: true, status: 200, text: async () => '{"id":"x"}' }; };
+  const cfg = { RESEND_API_KEY: 're_test', MAIL_FROM: 'Drona <hello@Dronafy.com>', MAIL_REPLY_TO: 'hello@Dronafy.com' };
+  await createResendMailer(cfg, ok).send({ to: 'a@example.com', subject: 'S', text: 't', html: '<p>h</p>' });
+  assert.equal(calls[0].url, 'https://api.resend.com/emails');
+  assert.equal(calls[0].opts.headers.Authorization, 'Bearer re_test');
+  const body = JSON.parse(calls[0].opts.body);
+  assert.deepEqual(body.to, ['a@example.com']);
+  assert.equal(body.from, 'Drona <hello@Dronafy.com>');
+  assert.equal(body.reply_to, 'hello@Dronafy.com');
+  assert.equal(body.html, '<p>h</p>');
+
+  const bad = async () => ({ ok: false, status: 403, text: async () => '{"message":"The dronafy.com domain is not verified."}' });
+  await assert.rejects(createResendMailer(cfg, bad).send({ to: 'a@example.com', subject: 'S', text: 't', html: 'h' }), /Resend 403: The dronafy\.com domain is not verified/);
+  assert.equal(createMailer({ ...cfg, SMTP_HOST: 'smtp.x' }).provider, 'resend', 'Resend wins over SMTP when both are set');
+});

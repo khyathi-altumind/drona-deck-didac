@@ -134,8 +134,41 @@ async function smtpSend(cfg, msg) {
   }
 }
 
-// Returns null when SMTP is not configured: addresses are still saved, nothing is sent.
+// Resend's HTTPS API (port 443). Used when RESEND_API_KEY is set: Render's free plan blocks SMTP ports,
+// but never HTTPS. MAIL_FROM must be on a domain verified in Resend (dronafy.com).
+function createResendMailer(cfg, fetchImpl = fetch) {
+  const timeoutMs = cfg.SMTP_TIMEOUT_MS || 15000;
+  return {
+    provider: 'resend',
+    async send(msg) {
+      if (!validEmail(msg.to)) throw new Error('invalid recipient');
+      const res = await fetchImpl('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cfg.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: cfg.MAIL_FROM,
+          to: [msg.to],
+          subject: msg.subject,
+          html: msg.html,
+          text: msg.text,
+          ...(cfg.MAIL_REPLY_TO ? { reply_to: cfg.MAIL_REPLY_TO } : {}),
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const body = await res.text();
+      if (!res.ok) {
+        let detail = body.slice(0, 300);
+        try { detail = JSON.parse(body).message || detail; } catch { /* keep raw text */ }
+        throw new Error(`Resend ${res.status}: ${detail}`);
+      }
+    },
+  };
+}
+
+// Resend when RESEND_API_KEY is set, else SMTP. Returns null when neither is configured: addresses are
+// still saved, nothing is sent.
 function createMailer(cfg) {
+  if (cfg.RESEND_API_KEY) return createResendMailer(cfg);
   if (!cfg.SMTP_HOST) return null;
   const timeoutMs = cfg.SMTP_TIMEOUT_MS || 15000;
   return {
@@ -148,4 +181,4 @@ function createMailer(cfg) {
   };
 }
 
-module.exports = { createMailer, validEmail, buildMessage };
+module.exports = { createMailer, createResendMailer, validEmail, buildMessage };

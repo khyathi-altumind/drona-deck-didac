@@ -389,6 +389,11 @@ function reportForm(action, { booth = false, open = false } = {}) {
   btn.addEventListener('click', show);
   dlg.querySelector('[data-close]').addEventListener('click', function () { if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); });
   if (btn.dataset.open) show();
+  var form = dlg.querySelector('form'), submit = form.querySelector('button[type=submit]');
+  form.addEventListener('submit', function (e) {
+    if (submit.disabled) { e.preventDefault(); return; }
+    setTimeout(function () { submit.disabled = true; submit.textContent = 'Sending…'; }, 0);
+  });
 
 })();
 </script>`;
