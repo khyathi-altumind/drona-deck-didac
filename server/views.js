@@ -204,8 +204,6 @@ h2{font-size:24px;line-height:1.2}
 .mini.PAS{background:linear-gradient(180deg,#1c2320,#0f1412);border-color:rgba(120,113,108,.3);color:#d6d3d1}
 .mini.out{background:rgba(6,27,18,.9);border-color:rgba(16,185,129,.2);color:var(--ivory);font-weight:500}
 .mini.out .d{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);flex:none}
-.reader{display:flex;align-items:center;justify-content:center;gap:12px;min-height:58px;margin-top:26px;border-radius:16px;background:linear-gradient(90deg,#fabc4d,#f4c46a,#e5a93c);color:var(--gold-ink);font-weight:600;font-size:17px;padding:12px 18px;text-align:center;box-shadow:0 8px 30px rgba(244,196,106,.35)}
-.reader .ic{font-size:24px;animation:pulse 1.6s infinite}
 
 /* Result, class, report */
 .score{font-family:var(--serif);font-size:60px;font-weight:600;line-height:1;color:var(--gold-hi)}
@@ -463,7 +461,6 @@ ${step(2, 'layers', 'Tap level + skill', 'Easy or Tough, then a skill lens', `<d
 ${step(3, 'check', 'Make your call', 'Before each answer', `<div class="hx">${calls}</div>`)}
 ${step(4, 'chart', 'See your result', 'Guess your score, then compare', `<div class="hx"><div class="mini out"><span style="display:flex;align-items:center;gap:8px"><span class="d"></span>Guess vs. score</span></div><div class="mini out"><span>Class view</span><span class="badge gold">Report</span></div></div>`)}
 </div>
-<div class="reader" role="status">${icon('nfc')}<span>Tap a Science or Civics card on the reader to start</span></div>
 </section>`;
 }
 
