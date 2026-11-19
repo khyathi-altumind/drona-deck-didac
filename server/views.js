@@ -630,44 +630,76 @@ const MAIL_RESULT = {
   limit: ['warn', 'This report has already been emailed the maximum number of times.'],
 };
 
-// The emailed report: the four analytics sections, light theme, inline styles (mail apps drop <style>).
+// The emailed report: Forest Gold kiosk look, built from tables with inline styles (mail apps drop <style>,
+// Outlook ignores most CSS). Dark backgrounds are set with bgcolor too, so clients keep them.
 function reportEmail(r, url, { name } = {}) {
   const ins = buildInsights(r);
-  const C = { ink: '#14231A', muted: '#5B6B61', line: '#E2DED2', bg: '#F6F3EA', card: '#FFFFFF', gold: '#8A6D1C', good: '#2F7A4C', mid: '#A8701A', low: '#B5523C' };
-  const TONE = { good: C.good, mid: C.mid, low: C.low };
-  const KIND = { good: C.good, partial: C.mid, bad: C.low };
-  const tag = (b) => `<span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;background:${TONE[b.tone]}">${esc(b.label)}</span>`;
-  const eyebrow = (t) => `<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${C.muted};margin:0 0 8px">${esc(t)}</div>`;
-  const card = (inner) => `<tr><td style="padding:0 0 14px"><div style="background:${C.card};border:1px solid ${C.line};border-radius:10px;padding:18px">${inner}</div></td></tr>`;
-  const paras = (ts) => ts.map((t) => `<p style="margin:8px 0 0;font-size:14px;line-height:1.5">${esc(t)}</p>`).join('');
-  const tile = (label, value, sub, b) => `<td width="50%" style="padding:4px;vertical-align:top"><div style="border:1px solid ${C.line};border-radius:8px;padding:10px 12px">
-<div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${C.muted}">${esc(label)}</div>
-<div style="font-size:24px;font-weight:700;margin:4px 0">${esc(value)} <span style="font-size:12px;font-weight:400;color:${C.muted}">${esc(sub)}</span></div>${b ? tag(b) : ''}</div></td>`;
-  const cell = 'padding:7px 6px;border-top:1px solid ' + C.line + ';font-size:14px';
-  const depthRows = r.questions.map((q) => `<tr><td style="${cell}"><b>Q${q.n}</b></td><td style="${cell}">L${q.level} · ${esc(q.levelName)}</td><td style="${cell}">${CALL_NAME[q.call]}</td>
-<td style="${cell};color:${q.call === 'PAS' ? C.muted : q.correct ? C.good : C.low};font-weight:600">${q.call === 'PAS' ? 'Passed' : q.correct ? '✓ Correct' : '✗ Not quite'}</td></tr>`).join('');
-  const decRows = ins.decision.decisions.map((d) => `<tr><td style="${cell}"><b>Q${d.n}</b></td><td style="${cell}">${CALL_NAME[d.call]}</td><td style="${cell};color:${KIND[d.kind]};font-weight:600">${esc(d.label)}</td></tr>`).join('');
-  const box = (title, color, items) => `<div style="border-left:3px solid ${color};background:${C.bg};border-radius:6px;padding:10px 14px;margin-top:10px"><b style="font-size:14px">${esc(title)}</b>
-<ul style="margin:6px 0 0;padding-left:18px;font-size:14px;line-height:1.5">${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+  const C = {
+    bg: '#041710', card: '#0D251D', well: '#081B14', line: '#1F4636', ink: '#F7FAF8', soft: '#A9C1B6', muted: '#7F9A8E',
+    gold: '#F4C46A', goldBase: '#E5A93C', goldInk: '#281900', goodTx: '#8FD3A8', goodBg: '#123724', midTx: '#F3C47A', midBg: '#3B2A0D', lowTx: '#F0A08C', lowBg: '#3E1F18',
+  };
+  const SERIF = "'Newsreader',Georgia,'Times New Roman',serif";
+  const SANS = "'Geist','Segoe UI',Helvetica,Arial,sans-serif";
+  const TONE = { good: [C.goodTx, C.goodBg], mid: [C.midTx, C.midBg], low: [C.lowTx, C.lowBg] };
+  const KIND = { good: C.goodTx, partial: C.midTx, bad: C.lowTx };
+  const CHIP = { RDY: ['#7FD3A2', C.goodBg, '#2E6E4A'], AST: [C.gold, C.midBg, '#7A5A1E'], PAS: ['#C3CEC9', '#1B2421', '#3A4743'] };
+  const VERDICT = { matched: C.goodTx, over: C.midTx, under: '#9CC3EE' };
+  const [verdictTitle, verdictLine] = CALIBRATION[r.calibration](r);
 
-  const html = `<!doctype html><html><body style="margin:0;background:${C.bg};color:${C.ink};font-family:Segoe UI,Helvetica,Arial,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}"><tr><td align="center" style="padding:20px 12px">
+  const tag = (b) => `<span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;color:${TONE[b.tone][0]};background:${TONE[b.tone][1]}">${esc(b.label)}</span>`;
+  const chip = (k, label) => `<span style="display:inline-block;margin:0 6px 6px 0;padding:4px 12px;border-radius:999px;border:1px solid ${CHIP[k][2]};background:${CHIP[k][1]};color:${CHIP[k][0]};font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">&#9679; ${esc(label)}</span>`;
+  const eyebrow = (t, color = C.muted) => `<div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${color};margin:0 0 10px">${esc(t)}</div>`;
+  const card = (inner, border = C.line) => `<tr><td style="padding:0 0 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${C.card}" style="background:${C.card};border:1px solid ${border};border-radius:16px"><tr><td style="padding:22px">${inner}</td></tr></table></td></tr>`;
+  const paras = (ts) => ts.map((t) => `<p style="margin:8px 0 0;font-size:14px;line-height:1.55;color:${C.soft}">${esc(t)}</p>`).join('');
+  const ticks = (ts) => ts.map((t) => `<tr><td width="22" valign="top" style="color:${C.gold};font-weight:700;font-size:14px;line-height:1.55">&#10003;</td><td style="font-size:14px;line-height:1.55;color:${C.ink};padding:0 0 6px">${esc(t)}</td></tr>`).join('');
+  const big = (value, unit) => `<span style="font-family:${SERIF};font-size:30px;font-weight:600;color:${C.ink}">${esc(value)}</span><span style="font-size:13px;color:${C.muted}"> ${esc(unit)}</span>`;
+  const tile = (label, value, unit, b) => `<td width="50%" valign="top" style="padding:5px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${C.well}" style="background:${C.well};border:1px solid ${C.line};border-radius:12px"><tr><td style="padding:12px 14px">
+<div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${C.muted}">${esc(label)}</div>
+<div style="margin:4px 0 6px">${big(value, unit)}</div>${b ? tag(b) : ''}</td></tr></table></td>`;
+  const cell = `padding:9px 6px;border-top:1px solid ${C.line};font-size:14px;color:${C.ink}`;
+  const callCell = (k) => `<td style="${cell}"><span style="color:${CHIP[k][0]};font-weight:600">${CALL_NAME[k]}</span></td>`;
+  const depthRows = r.questions.map((q) => `<tr><td style="${cell}"><b>Q${q.n}</b></td><td style="${cell};color:${C.soft}">L${q.level} · ${esc(q.levelName)}</td>${callCell(q.call)}
+<td align="right" style="${cell};color:${q.call === 'PAS' ? C.muted : q.correct ? C.goodTx : C.lowTx};font-weight:600">${q.call === 'PAS' ? 'Passed' : q.correct ? '&#10003; Correct' : '&#10007; Not quite'}</td></tr>`).join('');
+  const decRows = ins.decision.decisions.map((d) => `<tr><td style="${cell}"><b>Q${d.n}</b></td>${callCell(d.call)}<td align="right" style="${cell};color:${KIND[d.kind]};font-weight:600">${esc(d.label)}</td></tr>`).join('');
+  const box = (title, color, items) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${C.well}" style="background:${C.well};border:1px solid ${C.line};border-left:3px solid ${color};border-radius:10px;margin-top:10px"><tr><td style="padding:12px 16px">
+<b style="font-size:14px;color:${color}">${esc(title)}</b>
+<ul style="margin:6px 0 0;padding-left:18px;font-size:14px;line-height:1.55;color:${C.ink}">${items.map((t) => `<li style="margin:3px 0">${esc(t)}</li>`).join('')}</ul></td></tr></table>`;
+  const score = (n, b) => `<div><span style="font-family:${SERIF};font-size:30px;font-weight:600;color:${C.ink}">${n}</span><span style="font-size:13px;color:${C.muted}">/100</span>&nbsp; ${tag(b)}</div>`;
+  const preheader = `${r.correct} of ${r.total} correct · Thinking depth ${ins.depth.score}/100 · Decision-making ${ins.decision.score}/100`;
+
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+<title>Your Drona report</title></head>
+<body bgcolor="${C.bg}" style="margin:0;padding:0;background:${C.bg};color:${C.ink};font-family:${SANS}">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${C.bg}">${esc(preheader)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${C.bg}" style="background:${C.bg}"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
-<tr><td style="padding:0 0 14px"><div style="font-family:Georgia,serif;font-size:24px;font-weight:700">Drona<span style="color:${C.gold}">.</span></div>
-<div style="font-size:13px;color:${C.muted}">Quick Hand report · ${esc(r.subject.name)} · ${esc(r.skill.name)} · ${esc(r.difficulty.name)} · ${esc(reportWhen(r))} IST</div>
-${name ? `<p style="margin:14px 0 0;font-size:15px">Hi ${esc(name)}, here is your complete Drona report.</p>` : ''}</td></tr>
-${card(`${eyebrow('At a glance')}${paras(ins.glance)}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px"><tr>${tile('Score', `${r.correct}`, `of ${r.total} · ${r.points} ${r.points === 1 ? 'point' : 'points'}`)}${tile('Thinking depth', `${ins.depth.score}`, '/100', ins.depth)}</tr>
+<tr><td style="padding:0 2px 18px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td valign="middle" style="font-family:${SERIF};font-size:30px;font-weight:500;color:#ffc665;line-height:1">Drona<span style="color:${C.gold}">.</span></td>
+<td align="right" valign="middle"><span style="display:inline-block;padding:5px 12px;border-radius:999px;border:1px solid #3A3214;background:#1A1A0C;color:${C.gold};font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase">&#9679; DIDAC Bengaluru 2026</span></td>
+</tr></table>
+<div style="height:1px;background:${C.line};margin:16px 0 0;line-height:1px;font-size:1px">&nbsp;</div></td></tr>
+${card(`${eyebrow(`Quick Hand report · ${r.subject.name} · ${r.skill.name} · ${r.difficulty.name}`, C.gold)}
+${name ? `<p style="margin:0 0 14px;font-size:16px;line-height:1.5;color:${C.ink}">Hi ${esc(name)}, here is your complete Drona report.</p>` : ''}
+<div style="font-family:${SERIF};font-size:56px;font-weight:600;line-height:1;color:#ffc665">${r.correct}<span style="font-size:20px;font-weight:400;color:${C.soft}"> of ${r.total} correct</span></div>
+<div style="font-family:${SERIF};font-size:24px;font-weight:600;margin:14px 0 0;color:${VERDICT[r.calibration]}">${esc(verdictTitle)}</div>
+<p style="margin:6px 0 14px;font-size:15px;line-height:1.55;color:${C.soft}">${esc(verdictLine)}</p>
+<div>${['RDY', 'AST', 'PAS'].map((k) => chip(k, `${CALL_NAME[k]} ×${r.calls[k]}`)).join('')}</div>
+<div style="font-size:12px;color:${C.muted};margin-top:8px">${esc(reportWhen(r))} IST</div>`, '#5C4A1E')}
+${card(`${eyebrow('At a glance')}<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${ticks(ins.glance)}</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px"><tr>${tile('Score', `${r.correct}`, `of ${r.total} · ${r.points} ${r.points === 1 ? 'point' : 'points'}`)}${tile('Thinking depth', `${ins.depth.score}`, '/100', ins.depth)}</tr>
 <tr>${tile('Decision-making', `${ins.decision.score}`, '/100', ins.decision)}${tile('Knowing what you know', `${r.estimate}`, `guessed · got ${r.correct}`, ins.calibration)}</tr></table>`)}
-${card(`${eyebrow('Thinking depth')}<div style="font-size:22px;font-weight:700">${ins.depth.score}<span style="font-size:13px;font-weight:400;color:${C.muted}">/100</span> ${tag(ins.depth)}</div>
-<p style="margin:6px 0 0;font-size:14px;color:${C.muted}">How far up the ${esc(r.skill.name)} ladder your right answers reached. Higher levels count for more; a hint takes a quarter off.</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px">${depthRows}</table>${paras(ins.depth.text)}`)}
-${card(`${eyebrow('Decision-making')}<div style="font-size:22px;font-weight:700">${ins.decision.score}<span style="font-size:13px;font-weight:400;color:${C.muted}">/100</span> ${tag(ins.decision)}</div>
-<p style="margin:6px 0 0;font-size:14px;color:${C.muted}">Whether each call (Ready, Assist or Pass) fitted what you actually knew. Good ${ins.decision.mix.good} · Partial ${ins.decision.mix.partial} · Needs a rethink ${ins.decision.mix.bad}</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px">${decRows}</table>${paras(ins.decision.text)}`)}
-${card(`${eyebrow('Strengths, focus areas and next steps')}${box('Strengths', C.good, ins.strengths)}${box('Focus areas', C.mid, ins.focus)}${box('Next steps', C.gold, ins.next)}`)}
-${url ? `<tr><td align="center" style="padding:4px 0 14px"><a href="${esc(url)}" style="display:inline-block;background:${C.gold};color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">See every question and answer</a></td></tr>` : ''}
-<tr><td style="font-size:12px;color:${C.muted};line-height:1.5">Drona measures how students think, how they decide and how well they know their own ability. These analytics are worked out by fixed rules from three questions, so they are a quick snapshot, not a full assessment. You received this because this address was entered at the Drona booth.</td></tr>
+${card(`${eyebrow('Thinking depth')}${score(ins.depth.score, ins.depth)}
+<p style="margin:8px 0 0;font-size:14px;line-height:1.55;color:${C.soft}">How far up the ${esc(r.skill.name)} ladder your right answers reached. Higher levels count for more; a hint takes a quarter off.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px">${depthRows}</table>${paras(ins.depth.text)}`)}
+${card(`${eyebrow('Decision-making')}${score(ins.decision.score, ins.decision)}
+<p style="margin:8px 0 0;font-size:14px;line-height:1.55;color:${C.soft}">Whether each call (Ready, Assist or Pass) fitted what you actually knew. Good ${ins.decision.mix.good} · Partial ${ins.decision.mix.partial} · Needs a rethink ${ins.decision.mix.bad}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px">${decRows}</table>${paras(ins.decision.text)}`)}
+${card(`${eyebrow('Strengths, focus areas and next steps')}${box('Strengths', C.goodTx, ins.strengths)}${box('Focus areas', C.midTx, ins.focus)}${box('Next steps', C.gold, ins.next)}`)}
+${url ? `<tr><td align="center" style="padding:6px 0 20px"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="${C.gold}" style="border-radius:14px;background:${C.gold};background-image:linear-gradient(90deg,#fabc4d,#f4c46a,#e5a93c)">
+<a href="${esc(url)}" style="display:inline-block;padding:16px 28px;font-family:${SANS};font-size:16px;font-weight:600;color:${C.goldInk};text-decoration:none;border-radius:14px">See every question and answer &rarr;</a></td></tr></table></td></tr>` : ''}
+<tr><td style="padding:0 4px;font-size:12px;line-height:1.6;color:${C.muted}">Drona measures how students think, how they decide and how well they know their own ability. These analytics are worked out by fixed rules from three questions, so they are a quick snapshot, not a full assessment. You received this because this address was entered at the Drona booth.</td></tr>
 </table></td></tr></table></body></html>`;
 
   return {
