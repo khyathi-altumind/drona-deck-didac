@@ -1,5 +1,5 @@
 const { CARDS, tapPath } = require('./codes');
-const { levelName, MAX_LEVEL, BANDS } = require('../engine');
+const { levelName, BANDS } = require('../engine');
 const { HAND_SIZE } = require('./state');
 const { buildInsights, insightsEmail } = require('./insights');
 
@@ -100,13 +100,7 @@ h2{font-size:24px;line-height:1.2}
 .slot.next .val{color:var(--gold)}
 .slot .sbar{margin-top:12px;height:4px;border-radius:4px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
 .slot.on .sbar{background:rgba(16,185,129,.45)}
-.slot.skill.on .sbar{background:var(--acc,var(--depth))}
 .slot.next .sbar::after{content:'';position:absolute;top:0;bottom:0;left:0;width:32%;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:shimmer 1.8s infinite}
-.ladder{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap}
-.ladder i{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--acc,var(--depth));display:inline-block}
-.ladder i.f{background:var(--acc,var(--depth));box-shadow:0 0 6px var(--acc,var(--depth))}
-.ladder i.out{opacity:.25}
-.ladder span{font-size:12px;color:var(--soft);margin-left:4px}
 
 /* Question meta + progress */
 .qmeta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:0 2px}
@@ -365,17 +359,6 @@ ${refresh ? `<meta http-equiv="refresh" content="${refresh}">` : ''}
 const CALL_NAME = { RDY: 'Ready', AST: 'Assist', PAS: 'Pass' };
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-// Six dots for the skill's ladder; levels outside the chosen band are faded.
-function ladder(skill, level, difficulty) {
-  const band = BANDS[difficulty];
-  let dots = '';
-  for (let i = 1; i <= MAX_LEVEL; i++) {
-    const cls = [i <= level ? 'f' : '', band && (i < band.min || i > band.max) ? 'out' : ''].filter(Boolean).join(' ');
-    dots += `<i class="${cls}"></i>`;
-  }
-  return `<div class="ladder" aria-label="Level ${level} of ${MAX_LEVEL}">${dots}<span>L${level} · ${esc(levelName(skill, level))}</span></div>`;
-}
-
 // Inline line icons (no icon font, so the booth still renders if Google Fonts is slow).
 const ICON = {
   nfc: '<path d="M7 8.5a5 5 0 0 1 0 7"/><path d="M10.5 6a8.5 8.5 0 0 1 0 12"/><path d="M14 3.5a12 12 0 0 1 0 17"/>',
@@ -427,18 +410,17 @@ function steps(s) {
 function slots(s) {
   const next = { IDLE: 'subject', DIFFICULTY: 'level', SKILL: 'skill' }[s.phase];
   const band = s.difficulty ? BANDS[s.difficulty] : null;
-  const inHand = s.phase === 'QUESTION' || s.phase === 'ANSWERING';
-  const slot = (key, n, label, value, badge, extra = '', style = '') => {
+  const slot = (key, n, label, value, badge) => {
     const cls = ['slot', key, value ? 'on' : '', next === key ? 'next' : ''].filter(Boolean).join(' ');
     const b = next === key ? '<span class="badge gold">Tap now</span>' : badge || (value ? '' : '<span class="badge">Waiting</span>');
-    return `<div class="${cls}"${style}><div class="shead"><span class="slab"><i></i>0${n} · ${label}</span><span class="sic">${icon('nfc')}</span></div>
-<div class="sbody"><div class="val ${value ? '' : 'empty'}">${value ? esc(value) : 'Tap card —'}</div>${b}</div>${extra || '<div class="sbar"></div>'}</div>`;
+    return `<div class="${cls}"><div class="shead"><span class="slab"><i></i>0${n} · ${label}</span><span class="sic">${icon('nfc')}</span></div>
+<div class="sbody"><div class="val ${value ? '' : 'empty'}">${value ? esc(value) : 'Tap card —'}</div>${b}</div><div class="sbar"></div></div>`;
   };
-  const skillAcc = s.skill ? ` style="--acc:${CARDS.p[s.skill].accent}"` : '';
+  const tapped = '<span class="badge em">Tapped</span>';
   return `<section class="slots" aria-label="Cards on the reader">
-${slot('subject', 1, 'Subject', s.subject && CARDS.s[s.subject].name, s.subject ? '<span class="badge em">Tapped</span>' : '')}
-${slot('level', 2, 'Level', band && band.name, band ? `<span class="badge em">L${band.min}–${band.max}</span>` : '')}
-${slot('skill', 3, 'Skill', s.skill && CARDS.p[s.skill].name, s.skill && !inHand ? '<span class="badge gold">Saved</span>' : '', s.skill && s.level && inHand ? ladder(s.skill, s.level, s.difficulty) : '', skillAcc)}
+${slot('subject', 1, 'Subject', s.subject && CARDS.s[s.subject].name, s.subject ? tapped : '')}
+${slot('level', 2, 'Level', band && band.name, band ? tapped : '')}
+${slot('skill', 3, 'Skill', s.skill && CARDS.p[s.skill].name, s.skill ? tapped : '')}
 </section>`;
 }
 
