@@ -134,7 +134,26 @@ h2{font-size:24px;line-height:1.2}
 .stem{font-family:var(--serif);font-size:28px;font-weight:500;line-height:1.3;letter-spacing:-.01em;margin:0}
 .callzone{margin:28px -32px 0;padding:24px 32px 28px;background:linear-gradient(180deg,#081e16,#04120c);border-top:1px solid rgba(16,185,129,.2)}
 .tokens{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
-.token{display:flex;flex-direction:column;align-items:flex-start;padding:16px 18px;border-radius:16px;border:1px solid;min-height:56px;box-shadow:inset 0 1px 1px rgba(255,255,255,.22),inset 0 -2px 4px rgba(0,0,0,.4),0 8px 24px -4px rgba(0,0,0,.5)}
+.token{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;padding:16px 18px;border-radius:16px;border:1px solid;min-height:56px;color:inherit;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:inset 0 1px 1px rgba(255,255,255,.22),inset 0 -2px 4px rgba(0,0,0,.4),0 8px 24px -4px rgba(0,0,0,.5);transition:transform .15s,opacity .3s,box-shadow .3s}
+.token>*{position:relative;z-index:1}
+.token>.tfill{position:absolute;inset:0;z-index:0;transform:scaleX(0);transform-origin:left center}
+.token.RDY>.tfill{background:linear-gradient(90deg,#2c7a50,#3B9263 60%,#52b07f)}
+.token.AST>.tfill{background:linear-gradient(90deg,#e5a93c,#f4c46a 60%,#fabc4d)}
+.token.PAS>.tfill{background:linear-gradient(90deg,#3c4a45,#56655f 60%,#6b7a74)}
+.tokens:not(.locked) .token:hover{transform:translateY(-2px)}
+.tokens:not(.locked) .token:active{transform:translateY(1px)}
+.token:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.tokens.locked .token{cursor:default}
+.tokens.locked .token:not(.picked){opacity:.35}
+.token.picked{transform:scale(1.03);border-color:transparent}
+.token.picked>.tfill{transform:scaleX(1);animation:tokenfill .6s cubic-bezier(.25,.8,.3,1)}
+.token.RDY.picked{box-shadow:0 0 0 2px #52b07f,0 0 32px rgba(59,146,99,.55)}
+.token.AST.picked{box-shadow:0 0 0 2px var(--gold),0 0 32px rgba(244,196,106,.5)}
+.token.PAS.picked{box-shadow:0 0 0 2px #8a9893,0 0 28px rgba(110,125,119,.45)}
+.token.picked .tn,.token.picked .td,.token.picked .ti{color:#fff;transition:color .25s .25s}
+.token.AST.picked .tn,.token.AST.picked .td,.token.AST.picked .ti{color:var(--gold-ink)}
+.token.picked .td{opacity:.85}
+@keyframes tokenfill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .token .th{display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:12px}
 .token .tn{font-size:17px;font-weight:600;color:var(--ivory)}
 .token .td{font-size:13px;color:var(--soft);margin-top:4px;line-height:1.4}
@@ -202,6 +221,7 @@ h2{font-size:24px;line-height:1.2}
 .mini.RDY{background:linear-gradient(180deg,#0f2c1c,#081810);border-color:rgba(16,185,129,.3);color:#6ee7b7}
 .mini.AST{background:linear-gradient(180deg,#281b08,#150f04);border-color:rgba(245,158,11,.3);color:#fcd34d}
 .mini.PAS{background:linear-gradient(180deg,#1c2320,#0f1412);border-color:rgba(120,113,108,.3);color:#d6d3d1}
+.mini.RDY,.mini.AST,.mini.PAS{justify-content:center}
 .mini.out{background:rgba(6,27,18,.9);border-color:rgba(16,185,129,.2);color:var(--ivory);font-weight:500}
 .mini.out .d{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);flex:none}
 
@@ -434,13 +454,15 @@ function context(q, subject) {
 }
 
 const CALL_TOKENS = [
-  ['RDY', 'check', 'Answer on your own', 'Correct: +2 points and a level up'],
-  ['AST', 'help', 'See a hint first', 'Correct: +1 point'],
-  ['PAS', 'skip', 'Skip it on purpose', 'Counts as one of the three'],
+  ['RDY', 'check', 'Answer on your own'],
+  ['AST', 'help', 'See a hint first'],
+  ['PAS', 'skip', 'Skip it on purpose'],
 ];
 
-function callTokens() {
-  return `<div class="tokens">${CALL_TOKENS.map(([k, ic, title, desc]) => `<div class="token ${k}"><div class="th"><span class="chip ${k}">${CALL_NAME[k]}</span><span class="ti">${icon(ic)}</span></div><span class="tn">${title}</span><span class="td">${desc}</span></div>`).join('')}</div>`;
+// Each tile is a link to the same /k/ route as the NFC chip. On click (or R/A/P from the button box),
+// buttonScript fills the chosen tile with its colour, then follows the link.
+function callTokens(station) {
+  return `<div class="tokens" id="calls">${CALL_TOKENS.map(([k, ic, title]) => `<a class="token ${k}" data-call="${k}" href="${tapPath('k', k, station)}?src=screen"><span class="tfill" aria-hidden="true"></span><div class="th"><span class="chip ${k}">${CALL_NAME[k]}</span><span class="ti">${icon(ic)}</span></div><span class="tn">${title}</span></a>`).join('')}</div>`;
 }
 
 // Welcome screen: four-step "how to play" plaque.
@@ -450,7 +472,7 @@ function welcomeHero() {
   const subjects = `<div class="hx two">${['SCI', 'CIV'].map((k) => `<div class="mini sub"><small>Live</small>${esc(CARDS.s[k].name)}</div>`).join('')}</div>`;
   const levels = ['EASY', 'TOUGH'].map((k) => `<div class="mini lv" style="--acc:${CARDS.d[k].accent}">${esc(CARDS.d[k].name)}</div>`).join('');
   const pillars = ['DEP', 'STR', 'UNT', 'PIV'].map((k) => `<div class="mini pl" style="--acc:${CARDS.p[k].accent};--tint:${PILLAR_TINT[k]}"><i></i>${esc(CARDS.p[k].name)}</div>`).join('');
-  const calls = [['RDY', '+2'], ['AST', '+1'], ['PAS', '0']].map(([k, p]) => `<div class="mini ${k}">${CALL_NAME[k]}<small>${p} pts</small></div>`).join('');
+  const calls = ['RDY', 'AST', 'PAS'].map((k) => `<div class="mini ${k}">${CALL_NAME[k]}</div>`).join('');
   return `<section class="panel hero glow">
 <div class="hero-head"><span class="pill gold"><i></i>DIDAC exhibition kiosk</span>
 <h1>The Drona Deck<span class="dot">.</span></h1>
@@ -719,7 +741,7 @@ function reportCta(action, opts) {
 
 // ---------- Booth screens ----------
 
-function phaseBody(s, { report, reportUrl }) {
+function phaseBody(s, { report, reportUrl, station }) {
   const form = { booth: true, open: Boolean(s.openForm) };
   switch (s.phase) {
     case 'IDLE':
@@ -740,9 +762,9 @@ function phaseBody(s, { report, reportUrl }) {
     case 'QUESTION':
       return `<section class="panel glow qcard">${questionCrumb(s)}
 ${context(s.question, s.subject)}<p class="stem">${esc(s.question.stem)}</p>
-<div class="callzone"><div class="eyebrow gold">Declare your call · tap a chip on the reader</div>
+<div class="callzone"><div class="eyebrow gold">Declare your call · tap a chip on the reader or a tile below</div>
 <p class="small" style="margin:4px 0 0">Choose how you will answer before you see the options.</p>
-${callTokens()}</div>
+${callTokens(station)}</div>
 </section>`;
 
     case 'ANSWERING': {
@@ -845,6 +867,25 @@ function buttonScript(station) {
   var station = ${station ? Number(station) : 'null'};
   var calls = { r: 'RDY', a: 'AST', p: 'PAS', F13: 'RDY', F14: 'AST', F15: 'PAS' };
   var busy = false;
+  var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Fill only the chosen call tile, dim the others, then go. Without tiles on screen, go at once.
+  function pick(code, href) {
+    var box = document.getElementById('calls');
+    var tile = box && box.querySelector('[data-call="' + code + '"]');
+    if (!tile) { location.href = href; return; }
+    box.classList.add('locked');
+    tile.classList.add('picked');
+    setTimeout(function () { location.href = href; }, still ? 120 : 700);
+  }
+  var box = document.getElementById('calls');
+  if (box) box.addEventListener('click', function (e) {
+    var tile = e.target.closest('[data-call]');
+    if (!tile) return;
+    e.preventDefault();
+    if (busy) return;
+    busy = true;
+    pick(tile.dataset.call, tile.getAttribute('href'));
+  });
   document.addEventListener('keydown', function (e) {
     if (busy || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
     // Typing an email address must not fire Ready/Assist/Pass or press an answer button.
@@ -854,7 +895,7 @@ function buttonScript(station) {
     if (calls[k]) {
       busy = true;
       e.preventDefault();
-      location.href = '/k/' + calls[k] + (station ? '/' + station : '') + '?src=button';
+      pick(calls[k], '/k/' + calls[k] + (station ? '/' + station : '') + '?src=button');
       return;
     }
     var btn = document.querySelector('button[data-key="' + k + '"]');
@@ -870,7 +911,7 @@ function playPage(s, { devTools, station, report = null, reportUrl = null }) {
   const inHand = s.phase === 'QUESTION' || s.phase === 'ANSWERING';
   return layout(
     'Drona Deck',
-    `${header(s, station)}<main class="screen booth">${n}${inHand ? questionMeta(s) : ''}${done ? '' : slots(s)}${inHand ? steps(s) : ''}${phaseBody(s, { report, reportUrl })}</main>${devTools ? devBar(station || 1) : ''}${buttonScript(station)}`,
+    `${header(s, station)}<main class="screen booth">${n}${inHand ? questionMeta(s) : ''}${done ? '' : slots(s)}${inHand ? steps(s) : ''}${phaseBody(s, { report, reportUrl, station })}</main>${devTools ? devBar(station || 1) : ''}${buttonScript(station)}`,
   );
 }
 

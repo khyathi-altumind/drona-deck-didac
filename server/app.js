@@ -183,7 +183,7 @@ function createApp(overrides = {}) {
       code: tap.code,
       set: tap.set,
       setRaw: tap.set ? undefined : tap.setRaw,
-      source: url.searchParams.get('src') === 'button' ? 'button' : 'tag',
+      source: ['button', 'screen'].includes(url.searchParams.get('src')) ? url.searchParams.get('src') : 'tag',
       expired: expired || undefined,
       ua: req.headers['user-agent'],
     };
