@@ -271,6 +271,11 @@ dialog.getreport::backdrop{background:rgba(2,12,8,.8);-webkit-backdrop-filter:bl
 .field input:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 3px rgba(244,196,106,.15)}
 .dlgclose{float:right;font:inherit;font-size:24px;line-height:1;background:none;border:0;color:var(--muted);cursor:pointer;padding:0 4px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.lgrid,.lcol,.cc,.cc-a,.cc-b{display:contents}
+.cmp{order:1}
+.row.pair>form{flex:1}
+.row.pair>form:last-child{flex:2}
+.row.pair .btn{width:100%;white-space:nowrap}
 .devbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(2,12,8,.95);border-top:1px dashed var(--gold);padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center;font-size:12px}
 .devbar b{color:var(--gold);letter-spacing:.1em;margin-right:4px}
 .devbar a{color:var(--ivory);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:5px 8px}
@@ -280,6 +285,23 @@ th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertic
 th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
 .dim{opacity:.45}
+.rmodal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:rfade .2s ease-out}
+.rcard{position:relative;width:100%;max-width:640px;max-height:calc(100vh - 48px);overflow:auto;background:#0c1f18;border:1px solid rgba(229,169,60,.3);border-radius:16px;padding:36px 40px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
+.rcard .eyebrow{letter-spacing:.2em}
+.rcard h2{font-family:var(--serif);font-weight:600;font-size:36px;line-height:1.15;margin:8px 0 0;color:var(--ivory)}
+.rcard h2 .dot{color:var(--gold-base)}
+.rclose{position:absolute;top:22px;right:22px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--ivory-warm);font-size:22px;line-height:1;cursor:pointer}
+.rclose:hover{background:rgba(255,255,255,.1);color:var(--ivory)}
+.rlist{list-style:none;padding:0;margin:24px 0 0;display:grid;gap:16px}
+.rlist li{display:flex;align-items:baseline;gap:16px;font-size:18px;line-height:1.5;color:#d9e2de}
+.rlist b{flex:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;color:var(--gold-base);font-variant-numeric:tabular-nums}
+.rfoot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.1)}
+.rfoot p{margin:0;font-size:15px;color:var(--soft)}
+.rfoot strong{color:var(--ivory)}
+.rok{min-height:48px;padding:0 26px;border:0;border-radius:12px;background:linear-gradient(90deg,#fabc4d,#f4c46a,#e5a93c);color:var(--gold-ink);font:inherit;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 4px 20px rgba(244,196,106,.3)}
+.rok:hover{filter:brightness(1.05)}
+@keyframes rfade{from{opacity:0}to{opacity:1}}
+@media (max-width:560px){.rcard{padding:28px 22px}.rcard h2{font-size:28px}.rlist li{font-size:16px}.rok{width:100%}}
 .rules{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:10px}
 .rules li{display:flex;gap:12px;font-size:15px;line-height:1.4}
 .rules b{color:var(--gold);font-variant-numeric:tabular-nums}
@@ -321,17 +343,183 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
   .hero h1{font-size:36px}
   .panel.hero{padding:22px}
 }
+/* Phones, portrait or landscape: compact card slots and a one-row dev bar */
+@media (max-width:480px),(max-height:500px) and (orientation:landscape){
+  .slots{gap:8px}
+  .slot{padding:10px 10px 11px;border-radius:14px}
+  .slot .sic{display:none}
+  .slot .slab{font-size:9.5px;letter-spacing:.06em;gap:5px}
+  .slot .slab i{width:6px;height:6px}
+  .slot .sbody{margin-top:6px;gap:4px}
+  .slot .val{font-size:17px}
+  .slot .badge{font-size:8.5px;padding:2px 6px;letter-spacing:.06em}
+  .slot .sbar{margin-top:9px}
+  /* Dev bar: one swipeable row so it doesn't cover the answers */
+  .devbar{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 10px}
+  .devbar a,.devbar b{flex:none}
+  .screen{padding-bottom:64px}
+}
+/* Phone landscape (about 640-930 x 360-430): every booth screen fits one view without scrolling.
+   Wide screens become two columns, type scales with the height (vh), and text that repeats
+   something already on screen is dropped. Portrait, tablet and kiosk layouts are unaffected. */
+@media (max-height:500px) and (orientation:landscape){
+  .kbar{position:static}
+  .kbar-in{padding:5px 16px}
+  .wordmark{font-size:21px}
+  .kbar .pill{padding:4px 9px;font-size:9.5px}
+  .screen.booth{padding:10px 16px 12px;gap:8px}
+  body:has(.devbar) .screen.booth{padding-bottom:48px}
+  .booth .notice{padding:6px 12px;font-size:13px;border-radius:10px}
+  .booth h1{font-size:clamp(20px,6.5vh,26px)}
+  .booth .lead{font-size:13.5px;line-height:1.4;margin-top:4px}
+  .booth .eyebrow{font-size:10px}
+  .booth .panel{padding:12px 16px;border-radius:16px}
+  .booth .panel.glow::before{left:24px;right:24px}
+  .booth .btn{min-height:40px;padding:8px 16px;font-size:15px;border-radius:12px}
+
+  /* Card slots: one short row; hidden during the questions (the crumb names subject, skill and level) */
+  .booth .slot{padding:7px 10px 8px}
+  .booth .slot .sbody{margin-top:2px}
+  .booth .slot .val{font-size:15px}
+  .booth .slot .sbar{margin-top:6px;height:3px}
+  .booth.inhand .slots{display:none}
+
+  /* Welcome: title, one-line intro and the four steps in a row (the rules pop-up has the detail) */
+  .panel.hero{padding:14px 16px;border-radius:18px}
+  .hero-head{gap:4px;padding:0}
+  .hero-head .pill,.hx{display:none}
+  .hero h1{font-size:clamp(24px,8vh,32px)}
+  .hero .lead{max-width:none}
+  .howto{grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+  .hstep{padding:10px;gap:6px;border-radius:12px}
+  .hstep .num{width:24px;height:24px;font-size:11px}
+  .hstep .ht{font-size:14px}
+  .hstep .hd{font-size:12px}
+
+  /* Level, skill and estimate pickers in one row */
+  .big{gap:10px;margin-top:10px}
+  .big.quad{grid-template-columns:repeat(4,1fr)}
+  .pick{padding:10px 12px;border-radius:14px;min-height:0}
+  .pick b{font-size:clamp(18px,6vh,22px)}
+  .pick small{font-size:12px;margin-top:2px;line-height:1.35}
+  .cardhint .ph{margin-bottom:4px}
+  .big.four{grid-template-columns:repeat(4,1fr)}
+  .big.four .pick{max-width:none;width:clamp(56px,20vh,84px);padding:0}
+  .big.four .pick b{font-size:clamp(26px,9vh,34px)}
+
+  /* Question meta */
+  .qmeta .idx{width:22px;height:22px;font-size:11px;border-radius:7px}
+  .qmeta .qt{font-size:16px}
+  .qmeta .pill{padding:3px 8px;font-size:9.5px}
+  .steps i{height:3px}
+
+  /* Question and answers: question on the left, calls or options on the right */
+  .qcard{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0 18px;align-items:start;padding:12px 16px}
+  .qcard.answer{padding-bottom:12px}
+  .qcrumb{margin-bottom:8px;gap:6px}
+  .tagbox{padding:3px 8px;font-size:10px}
+  .lvtag{font-size:10px}
+  .stim{padding:8px 10px;margin-bottom:8px;gap:10px;border-radius:10px}
+  .stim-ic{width:28px;height:28px;font-size:15px;border-radius:8px}
+  .context{font-size:clamp(12.5px,3.9vh,15px);line-height:1.4}
+  .stem{font-size:clamp(15px,5vh,20px);line-height:1.3}
+  .callzone{margin:0;padding:0 0 0 18px;background:none;border-top:0;border-left:1px solid rgba(16,185,129,.2);align-self:stretch}
+  .callzone .eyebrow{font-size:9.5px}
+  .callzone .small{display:none}
+  .tokens{grid-template-columns:1fr;gap:8px;margin-top:8px}
+  .token{flex-direction:row;align-items:center;gap:10px;padding:9px 12px;min-height:0;border-radius:12px}
+  .token .th{width:auto;margin:0}
+  .token .ti{display:none}
+  .token .tn{font-size:14px}
+  .opts{grid-template-columns:1fr;gap:6px;margin-top:0}
+  .opt{font-size:clamp(13px,3.9vh,15px);line-height:1.3;padding:6px 10px;min-height:0;gap:10px;border-radius:10px}
+  .opt b{width:24px;height:24px;font-size:12px}
+  .qcard.answer:has(.hint) .crumb-call{display:none}
+  .hint{margin-top:8px;padding:8px 10px;font-size:13.5px;gap:8px;border-radius:10px}
+  .hint .ti{font-size:16px}
+
+  /* Result and share: two columns */
+  .booth .lgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:start}
+  .booth .lcol{display:flex;flex-direction:column;gap:8px}
+  .booth .score{font-size:clamp(34px,11vh,44px)}
+  .booth .score small{font-size:15px}
+  .booth .verdict{font-size:clamp(16px,5vh,20px);margin-top:4px}
+  .booth .stats{gap:6px;margin-top:8px}
+  .booth .stat{padding:6px 8px;border-radius:10px}
+  .booth .stat .eyebrow{font-size:8.5px;letter-spacing:.05em}
+  .booth .stat b{font-size:20px}
+  .booth .chips{margin-top:8px;gap:5px}
+  .booth .lcol .small,.booth .ticks,.booth .cta ul,.booth .cta>.eyebrow,.booth .rsum .lead{display:none}
+  .booth .chip.sm{padding:2px 8px;font-size:10px}
+  .booth .tiles{gap:6px;margin-top:6px}
+  .booth .tile{padding:6px 8px;border-radius:10px}
+  .booth .tile .eyebrow{display:block;font-size:8.5px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .booth .tile b{display:inline-block;font-size:18px;margin-top:2px}
+  .booth .tile b small{font-size:11px}
+  .booth .tag{font-size:10.5px;margin:0 0 0 6px;padding:1px 7px;vertical-align:3px}
+  .booth .cta h2{font-size:18px;margin-top:0!important}
+  .booth .cta form,.booth .cta>div{margin-top:8px!important}
+  .booth .share{gap:12px;margin-top:10px}
+  .booth .qr{width:clamp(88px,30vh,120px);height:clamp(88px,30vh,120px);padding:6px;border-radius:10px}
+  .booth .actions{gap:8px}
+  .booth .link{margin-top:6px;font-size:11px}
+
+  /* Class: score bars on the left, calibration and calls on the right */
+  .booth .cc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 20px}
+  .booth .cc-a,.booth .cc-b{display:block}
+  .booth .cc h2{font-size:17px;margin-top:6px!important}
+  .booth .cc .lead{font-size:13px}
+  .booth .cc-b .eyebrow{margin-top:10px!important}
+  .booth .cc-b>.eyebrow:first-child{margin-top:6px!important}
+  .booth .cc .small{display:none}
+  .booth .bars{gap:4px;margin-top:8px}
+  .booth .bar{font-size:12.5px;grid-template-columns:64px 1fr 62px;gap:8px}
+  .booth .bar small{font-size:10px}
+  .booth .bar .track{height:13px}
+  .booth .mixrow{margin-top:6px;font-size:13px;grid-template-columns:44px 1fr}
+  .booth .mix{height:20px}
+  .booth .mix span{font-size:10.5px}
+  .booth .legend{margin-top:6px}
+
+  /* Rules pop-up fits one screen: tighter card, steps in two columns */
+  .rmodal{padding:12px}
+  .rcard{max-height:calc(100vh - 24px);padding:18px 24px}
+  .rcard h2{font-size:24px;margin-top:4px}
+  .rclose{top:14px;right:14px;width:34px;height:34px;font-size:20px}
+  .rlist{grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,auto);grid-auto-flow:column;gap:8px 24px;margin-top:12px}
+  .rlist li{font-size:14px;line-height:1.4;gap:10px}
+  .rlist b{font-size:12px}
+  .rfoot{margin-top:12px;padding-top:12px}
+  .rfoot p{font-size:13px}
+  .rok{min-height:40px}
+}
 @media (max-width:480px){
   .kbar-in{padding:10px 14px}
   .kbrand{gap:10px}
   .wordmark{font-size:24px}
   .pill{padding:5px 10px;font-size:10px}
-  .screen.booth{padding-top:18px}
-  .slots{grid-template-columns:1fr 1fr}
-  .slots .slot.skill{grid-column:1/-1}
+  .screen.booth{padding-top:16px;gap:14px}
+  .qcrumb{gap:8px;margin-bottom:16px}
+  .qcrumb .vsep{display:none}
+  .qmeta .qt{font-size:19px}
   .howto{grid-template-columns:1fr}
+  .panel{padding:18px;border-radius:18px}
+  .panel.hero{padding:20px 16px}
+  .hero h1{font-size:32px}
+  .hero .lead{font-size:16px}
+  h1{font-size:28px}
+  .pick b{font-size:24px}
+  .stats{gap:8px}
+  .stat{padding:10px}
+  .stat .eyebrow{font-size:9.5px;letter-spacing:.06em}
+  .stat b{font-size:26px}
+  .tiles .eyebrow{letter-spacing:.06em}
+  .row.pair{flex-direction:column-reverse}
+  .row.pair>form,.row.pair>form:last-child{flex:none}
   .big.two{grid-template-columns:1fr}
-  .big.four{grid-template-columns:1fr 1fr}
+  .big.four{grid-template-columns:1fr 1fr;gap:12px}
+  .big.four .pick{max-width:120px}
+  .big.four .pick b{font-size:40px}
   .share{grid-template-columns:1fr;justify-items:center}
   .stats{grid-template-columns:1fr 1fr 1fr}
   .bar{grid-template-columns:70px 1fr 70px;gap:8px}
@@ -525,16 +713,17 @@ function classComparison(r) {
     under: 'You were more modest than your result.',
   }[r.calibration];
   return `<div class="row" style="margin-top:0;align-items:center"><span class="eyebrow">Compared with the class</span><span class="sample">Sample data</span></div>
+<div class="cc"><div class="cc-a">
 <h2 style="margin-top:8px">You scored higher than ${c.lower} of ${c.size} pupils.</h2>
 <p class="lead">${c.same} scored the same as you and ${c.higher} scored higher. The class average was ${c.avgCorrect} of ${r.total}.</p>
-<div class="bars">${bars}</div>
-<div class="eyebrow" style="margin-top:20px">Knowing what you know</div>
+<div class="bars">${bars}</div></div>
+<div class="cc-b"><div class="eyebrow" style="margin-top:20px">Knowing what you know</div>
 <p class="lead">${c.calibration.matched} of ${c.size} guessed their own score exactly. ${c.calibration.over} were more sure than their results. ${youCal}</p>
 <div class="eyebrow" style="margin-top:20px">How calls were made</div>
 <div class="mixrow"><span>Class</span><div class="mix">${mix(c.callMix.class)}</div></div>
 <div class="mixrow"><span><b>You</b></span><div class="mix">${mix(c.callMix.you)}</div></div>
 <div class="legend"><span><i style="background:var(--rdy)"></i>Ready</span><span><i style="background:var(--ast)"></i>Assist</span><span><i style="background:var(--pas)"></i>Pass</span></div>
-<p class="small" style="margin-top:12px">This is an illustrative Grade 8 class of ${c.size}. In a school pilot, this view shows your real class, with each pupil’s thinking, decisions and confidence over the term.</p>`;
+<p class="small" style="margin-top:12px">This is an illustrative Grade 8 class of ${c.size}. In a school pilot, this view shows your real class, with each pupil’s thinking, decisions and confidence over the term.</p></div></div>`;
 }
 
 // ---------- Rule-based analytics (server/insights.js) ----------
@@ -739,11 +928,11 @@ function phaseBody(s, { report, reportUrl, station }) {
       return `<section class="panel glow"><div class="eyebrow gold">${esc(CARDS.s[s.subject].name)} · ${esc(BANDS[s.difficulty].name)}</div>
 <h1 style="margin-top:8px">Now tap a skill card<span class="dot">.</span></h1>
 <p class="lead">Pick the thinking lens for your three questions.</p>
-<div class="big two">${['DEP', 'STR', 'UNT', 'PIV'].map((k) => `<div class="pick cardhint pillar" style="--acc:${CARDS.p[k].accent};--tint:${PILLAR_TINT[k]}"><div class="ph"><span class="pdot"></span>${icon('nfc')}</div><b>${esc(CARDS.p[k].name)}</b><small>${esc(CARDS.p[k].prompt)}</small></div>`).join('')}</div></section>`;
+<div class="big two quad">${['DEP', 'STR', 'UNT', 'PIV'].map((k) => `<div class="pick cardhint pillar" style="--acc:${CARDS.p[k].accent};--tint:${PILLAR_TINT[k]}"><div class="ph"><span class="pdot"></span>${icon('nfc')}</div><b>${esc(CARDS.p[k].name)}</b><small>${esc(CARDS.p[k].prompt)}</small></div>`).join('')}</div></section>`;
 
     case 'QUESTION':
-      return `<section class="panel glow qcard">${questionCrumb(s)}
-${context(s.question, s.subject)}<p class="stem">${esc(s.question.stem)}</p>
+      return `<section class="panel glow qcard"><div class="qmain">${questionCrumb(s)}
+${context(s.question, s.subject)}<p class="stem">${esc(s.question.stem)}</p></div>
 <div class="callzone"><div class="eyebrow gold">Declare your call · tap a chip on the reader or a tile below</div>
 <p class="small" style="margin:4px 0 0">Choose how you will answer before you see the options.</p>
 ${callTokens(station)}</div>
@@ -754,9 +943,9 @@ ${callTokens(station)}</div>
       const opts = q.options
         .map((o, i) => `<button class="opt" name="choice" value="${i}" data-key="${i + 1}"><b>${LETTERS[i]}</b><span>${esc(o)}</span></button>`)
         .join('');
-      return `<section class="panel glow qcard answer">${questionCrumb(s)}
+      return `<section class="panel glow qcard answer"><div class="qmain">${questionCrumb(s)}
 ${context(q, s.subject)}<p class="stem">${esc(q.stem)}</p>
-${s.call === 'AST' ? `<div class="hint"><span class="ti">${icon('help')}</span><div><b>Hint.</b> ${esc(q.hint)}</div></div>` : ''}
+${s.call === 'AST' ? `<div class="hint"><span class="ti">${icon('help')}</span><div><b>Hint.</b> ${esc(q.hint)}</div></div>` : ''}</div>
 <form method="post" action="/answer"><input type="hidden" name="qid" value="${esc(q.id)}"><div class="opts">${opts}</div></form>
 </section>`;
     }
@@ -772,21 +961,23 @@ ${s.call === 'AST' ? `<div class="hint"><span class="ti">${icon('help')}</span><
     case 'RESULT':
       if (!report) break;
       // Preview only; the complete report is emailed once the visitor gives their details.
-      return `<section class="panel">${resultSummary(report)}</section>
-<section class="panel">${glanceSection(report, buildInsights(report))}</section>
-${reportCta('/email', form)}
-<form method="post" action="/goto"><button class="btn ghost" name="to" value="CLASS" style="width:100%">Compare with the class →</button></form>`;
+      // .lgrid/.lcol are invisible wrappers, except in phone landscape where they make two columns.
+      // The compare button sits under the summary in landscape; order:1 keeps it last everywhere else.
+      return `<div class="lgrid"><div class="lcol"><section class="panel rsum">${resultSummary(report)}</section>
+<form method="post" action="/goto" class="cmp"><button class="btn ghost" name="to" value="CLASS" style="width:100%">Compare with the class →</button></form></div>
+<div class="lcol"><section class="panel">${glanceSection(report, buildInsights(report))}</section>
+${reportCta('/email', form)}</div></div>`;
 
     case 'CLASS':
       if (!report) break;
       return `<section class="panel">${classComparison(report)}</section>
-<div class="row" style="margin-top:0">
-<form method="post" action="/goto" style="flex:1"><button class="btn ghost" name="to" value="RESULT" style="width:100%">← My result</button></form>
-<form method="post" action="/goto" style="flex:2"><button class="btn" name="to" value="SHARE" style="width:100%">Share my report →</button></form></div>`;
+<div class="row pair" style="margin-top:0">
+<form method="post" action="/goto"><button class="btn ghost" name="to" value="RESULT">← My result</button></form>
+<form method="post" action="/goto"><button class="btn" name="to" value="SHARE">Share my report →</button></form></div>`;
 
     case 'SHARE': {
       if (!report) break;
-      return `<section class="panel"><div class="eyebrow">Share report</div>
+      return `<div class="lgrid"><div class="lcol"><section class="panel"><div class="eyebrow">Share report</div>
 <h1>Take your report with you<span class="dot">.</span></h1>
 <div style="margin-top:14px">${reportForm('/email', form)}</div>
 <div class="share">
@@ -796,11 +987,11 @@ ${reportCta('/email', form)}
     <button class="btn ghost" type="button" id="copy" data-url="${esc(reportUrl)}">Copy link</button>
   </div>
 </div>
-<p class="link">${esc(reportUrl)}</p></section>
-<section class="panel"><div class="eyebrow">Play again</div>
+<p class="link">${esc(reportUrl)}</p></section></div>
+<div class="lcol"><section class="panel"><div class="eyebrow">Play again</div>
 <p class="lead">Tap another skill card for a new hand in ${esc(report.subject.name)}, or a subject card to switch subject.</p>
 <div class="row"><form method="post" action="/goto"><button class="btn ghost" name="to" value="CLASS">← Class view</button></form>
-<form method="post" action="/new"><button class="btn">New player</button></form></div></section>
+<form method="post" action="/new"><button class="btn">New player</button></form></div></section></div></div>
 ${shareScript()}`;
     }
   }
@@ -887,13 +1078,49 @@ function buttonScript(station) {
 </script>`;
 }
 
+const RULE_STEPS = [
+  `Tap a subject card: ${CARDS.s.SCI.name} or ${CARDS.s.CIV.name}.`,
+  'Tap a level card: Easy or Tough.',
+  'Tap a skill card.',
+  'Three questions. For each one, read it, then tap your call: Ready, Assist or Pass. Then answer.',
+  'Guess how many you got right.',
+  'See your result, compare with the class, and take your report with you.',
+];
+
+// "How to play" pop-up, shown on the welcome screen of a new session, after the Rules card and after New player.
+// Closes with the buttons, the backdrop or Escape; tapping any card also moves past it.
+function rulesModal() {
+  const items = RULE_STEPS.map((t, i) => `<li><b>${String(i + 1).padStart(2, '0')}</b><span>${esc(t)}</span></li>`).join('');
+  return `<div class="rmodal" id="rules" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+<div class="rcard">
+<button type="button" class="rclose" data-close aria-label="Close">×</button>
+<div class="eyebrow gold">How to play</div>
+<h2 id="rules-title">The Drona Deck<span class="dot">.</span></h2>
+<ol class="rlist">${items}</ol>
+<div class="rfoot"><p>Start by tapping a <strong>${esc(CARDS.s.SCI.name)}</strong> or <strong>${esc(CARDS.s.CIV.name)}</strong> card.</p>
+<button type="button" class="rok" data-close>Got it</button></div>
+</div></div>
+<script>
+(() => {
+  const m = document.getElementById('rules');
+  if (!m) return;
+  const close = () => { m.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e) => { if (e.key === 'Escape' || e.key === 'Enter') close(); };
+  m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-close]')) close(); });
+  document.addEventListener('keydown', onKey);
+  m.querySelector('.rok').focus({ preventScroll: true });
+})();
+</script>`;
+}
+
 function playPage(s, { devTools, station, report = null, reportUrl = null }) {
   const n = s.notice ? `<div class="notice ${s.notice.tone}" role="status">${esc(s.notice.text)}</div>` : '';
   const done = ['RESULT', 'CLASS', 'SHARE'].includes(s.phase);
   const inHand = s.phase === 'QUESTION' || s.phase === 'ANSWERING';
+  const rules = s.showRules && s.phase === 'IDLE' ? rulesModal() : '';
   return layout(
     'Drona Deck',
-    `${header(s, station)}<main class="screen booth">${n}${inHand ? questionMeta(s) : ''}${done ? '' : slots(s)}${inHand ? steps(s) : ''}${phaseBody(s, { report, reportUrl, station })}</main>${devTools ? devBar(station || 1) : ''}${buttonScript(station)}`,
+    `${header(s, station)}<main class="screen booth${inHand ? ' inhand' : ''}">${n}${inHand ? questionMeta(s) : ''}${done ? '' : slots(s)}${inHand ? steps(s) : ''}${phaseBody(s, { report, reportUrl, station })}</main>${devTools ? devBar(station || 1) : ''}${rules}${buttonScript(station)}`,
   );
 }
 

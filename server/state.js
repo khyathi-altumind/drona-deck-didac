@@ -33,6 +33,7 @@ function freshFields() {
     reportId: null,
     seen: [],
     notice: null,
+    showRules: true, // "How to play" pop-up on the next welcome screen (new session, Rules card, New player)
     lastTap: null,
   };
 }

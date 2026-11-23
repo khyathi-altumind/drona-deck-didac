@@ -234,6 +234,7 @@ function createApp(overrides = {}) {
       const reportUrl = report ? `${cfg.BASE_URL}/report/${report.id}` : null;
       const html = views.playPage(s, { devTools: cfg.DEV_TOOLS, station, report, reportUrl });
       s.notice = null; // notices show once
+      s.showRules = false; // so does the rules pop-up
       s.openForm = false;
       return send(res, 200, html);
     }
