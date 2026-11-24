@@ -1,5 +1,5 @@
 const { CARDS, tapPath } = require('./codes');
-const { levelName, BANDS } = require('../engine');
+const { BANDS } = require('../engine');
 const { HAND_SIZE } = require('./state');
 const { buildInsights, insightsEmail } = require('./insights');
 
@@ -118,9 +118,6 @@ h2{font-size:24px;line-height:1.2}
 .qcard{padding:30px 32px 0;overflow:hidden}
 .qcard.answer{padding-bottom:30px}
 .qcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:22px}
-.tagbox{padding:5px 10px;border-radius:8px;background:#122f24;border:1px solid rgba(255,255,255,.1);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}
-.vsep{width:1px;height:14px;background:rgba(255,255,255,.15)}
-.lvtag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
 .crumb-call{margin-left:auto}
 .stim{display:flex;gap:16px;align-items:flex-start;background:linear-gradient(135deg,#02100a,#071c14);border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:18px 20px;margin-bottom:24px;box-shadow:inset 0 2px 8px rgba(0,0,0,.35)}
 .stim-ic{flex:none;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#122f24;border:1px solid rgba(255,198,101,.3);color:var(--gold-hi);font-size:20px;box-shadow:0 0 12px rgba(255,198,101,.15)}
@@ -377,12 +374,12 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
   .booth .panel.glow::before{left:24px;right:24px}
   .booth .btn{min-height:40px;padding:8px 16px;font-size:15px;border-radius:12px}
 
-  /* Card slots: one short row; hidden during the questions (the crumb names subject, skill and level) */
+  /* Card slots: one short row, hidden during the three questions so the question fits the screen */
+  .booth.inhand .slots{display:none}
   .booth .slot{padding:7px 10px 8px}
   .booth .slot .sbody{margin-top:2px}
   .booth .slot .val{font-size:15px}
   .booth .slot .sbar{margin-top:6px;height:3px}
-  .booth.inhand .slots{display:none}
 
   /* Welcome: title, one-line intro and the four steps in a row (the rules pop-up has the detail) */
   .panel.hero{padding:14px 16px;border-radius:18px}
@@ -417,8 +414,6 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
   .qcard{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0 18px;align-items:start;padding:12px 16px}
   .qcard.answer{padding-bottom:12px}
   .qcrumb{margin-bottom:8px;gap:6px}
-  .tagbox{padding:3px 8px;font-size:10px}
-  .lvtag{font-size:10px}
   .stim{padding:8px 10px;margin-bottom:8px;gap:10px;border-radius:10px}
   .stim-ic{width:28px;height:28px;font-size:15px;border-radius:8px}
   .context{font-size:clamp(12.5px,3.9vh,15px);line-height:1.4}
@@ -500,7 +495,6 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
   .pill{padding:5px 10px;font-size:10px}
   .screen.booth{padding-top:16px;gap:14px}
   .qcrumb{gap:8px;margin-bottom:16px}
-  .qcrumb .vsep{display:none}
   .qmeta .qt{font-size:19px}
   .howto{grid-template-columns:1fr}
   .panel{padding:18px;border-radius:18px}
@@ -614,9 +608,8 @@ ${slot('skill', 3, 'Skill', s.skill && CARDS.p[s.skill].name, s.skill ? tapped :
 
 // Subject · skill tag and the current rung of the skill ladder.
 function questionCrumb(s) {
-  const lv = s.level ? `<span class="vsep"></span><span class="lvtag">L${s.level} · ${esc(levelName(s.skill, s.level))}</span>` : '';
-  const call = s.phase === 'ANSWERING' && s.call ? `<span class="crumb-call"><span class="chip sm ${s.call}">${CALL_NAME[s.call]}</span></span>` : '';
-  return `<div class="qcrumb"><span class="tagbox">${esc(CARDS.s[s.subject].name)} · ${esc(CARDS.p[s.skill].name)}</span>${lv}${call}</div>`;
+  if (s.phase !== 'ANSWERING' || !s.call) return '';
+  return `<div class="qcrumb"><span class="crumb-call"><span class="chip sm ${s.call}">${CALL_NAME[s.call]}</span></span></div>`;
 }
 
 function context(q, subject) {
