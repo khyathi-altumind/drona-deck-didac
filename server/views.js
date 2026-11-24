@@ -53,6 +53,11 @@ svg.ic{width:1.1em;height:1.1em;flex:none;vertical-align:-.18em}
 .pill.live>i{width:9px;height:9px;background:#10b981;animation:ping 1.6s ease-out infinite}
 .pill.gold{background:rgba(229,169,60,.1);border-color:rgba(229,169,60,.32);color:var(--gold)}
 .pill.gold>i{box-shadow:0 0 8px var(--gold)}
+.kright{display:flex;align-items:center;gap:10px}
+.knew{margin:0}
+.knewbtn{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:6px 14px;border-radius:999px;font:inherit;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;cursor:pointer;color:var(--gold);background:rgba(229,169,60,.1);border:1px solid rgba(229,169,60,.45);-webkit-tap-highlight-color:transparent;transition:background .15s,border-color .15s}
+.knewbtn:hover,.knewbtn:focus-visible{background:rgba(229,169,60,.2);border-color:var(--gold);outline:none}
+.knewbtn:active{transform:scale(.97)}
 .knav{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(6,25,17,.9);border:1px solid rgba(16,185,129,.2)}
 .knav span{padding:7px 14px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid transparent;white-space:nowrap}
 .knav span.on{background:rgba(16,185,129,.18);color:var(--gold);border-color:rgba(244,196,106,.3)}
@@ -365,6 +370,7 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
   .kbar-in{padding:5px 16px}
   .wordmark{font-size:21px}
   .kbar .pill{padding:4px 9px;font-size:9.5px}
+  .knewbtn{min-height:30px;padding:4px 11px;font-size:10.5px}
   .screen.booth{padding:10px 16px 12px;gap:8px}
   body:has(.devbar) .screen.booth{padding-bottom:48px}
   .booth .notice{padding:6px 12px;font-size:13px;border-radius:10px}
@@ -492,6 +498,8 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
 }
 @media (max-width:480px){
   .kbar-in{padding:10px 14px}
+  .knewbtn{min-height:34px;padding:5px 11px;font-size:11px;letter-spacing:.05em}
+  .kbar .nfcx{display:none}
   .kbrand{gap:10px}
   .wordmark{font-size:24px}
   .pill{padding:5px 10px;font-size:10px}
@@ -567,13 +575,22 @@ const NAV = [
   ['Cohort', ['CLASS', 'SHARE']],
 ];
 
+// "New player" in the top bar on every screen but the welcome one: the next visitor starts from the
+// welcome page (with the How-to-play pop-up). Mid-game it asks first, so a tap can't wipe a running game.
+function newPlayerButton(s) {
+  if (s.phase === 'IDLE') return '';
+  const midGame = !['RESULT', 'CLASS', 'SHARE'].includes(s.phase);
+  const ask = midGame ? ` onsubmit="return confirm('Start over for a new player? This game will end.')"` : '';
+  return `<form method="post" action="/new" class="knew"${ask}><button type="submit" class="knewbtn" aria-label="New player: start over from the welcome screen"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>New player</span></button></form>`;
+}
+
 function header(s, station) {
   const where = station ? `Station ${station}` : 'DIDAC booth';
   const nav = NAV.map(([name, phases], i) => `<span class="${phases.includes(s.phase) ? 'on' : ''}">${i + 1}. ${name}</span>`).join('');
   return `<header class="kbar"><div class="kbar-in">
-<div class="kbrand"><span class="wordmark">Drona<i class="wdot"></i></span><span class="pill live"><i></i>${esc(where)} · NFC active</span></div>
+<div class="kbrand"><span class="wordmark">Drona<i class="wdot"></i></span><span class="pill live"><i></i>${esc(where)}<span class="nfcx"> · NFC active</span></span></div>
 <nav class="knav" aria-label="Progress">${nav}</nav>
-<span class="pill event"><i></i>DIDAC Bengaluru 2026</span>
+<div class="kright"><span class="pill event"><i></i>DIDAC Bengaluru 2026</span>${newPlayerButton(s)}</div>
 </div></header>`;
 }
 
