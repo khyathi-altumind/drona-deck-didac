@@ -309,6 +309,117 @@ test('Civics flow over HTTP: subject → Tough card → skill → questions 4, 5
   assert.equal((await b.state()).phase, 'ESTIMATE');
 });
 
+// Opens the laptop screen's event stream and returns a reader for its `data:` lines.
+async function openScreenEvents(laptop) {
+  const res = await laptop.get('/screen-events');
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /text\/event-stream/);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  return {
+    // Resolves with the next version number the server sends.
+    async next() {
+      for (;;) {
+        const m = /data: (\d+)\n\n/.exec(buf);
+        if (m) { buf = buf.slice(m.index + m[0].length); return Number(m[1]); }
+        const { value, done } = await reader.read();
+        if (done) throw new Error('stream ended');
+        buf += dec.decode(value);
+      }
+    },
+    close: () => reader.cancel(),
+  };
+}
+
+test('laptop screen: phone taps play on the station screen, which updates live', async (t) => {
+  const { base, clock, close } = await boot();
+  t.after(close);
+  const laptop = browser(base, clock);
+  const phone = browser(base, clock);
+
+  const pair = await laptop.get('/screen/1');
+  assert.equal(pair.status, 303);
+  assert.equal(pair.headers.get('location'), '/play');
+  assert.match(await laptop.page(), /The Drona Deck/);
+  const events = await openScreenEvents(laptop);
+  const v0 = await events.next();
+
+  // The phone gets a "sent" page instead of the game; the laptop gets the game.
+  let res = await phone.tap('/s/SCI/1');
+  assert.equal(res.status, 200);
+  assert.match(await res.text(), /Sent to the screen[\s\S]*Subject · Science/);
+  assert.ok((await events.next()) > v0, 'screen is told to reload');
+  assert.match(await laptop.page(), /Now tap a level card/);
+
+  await phone.tap('/d/EASY/1');
+  await phone.tap('/p/DEP/1');
+  await events.next();
+  await events.next();
+  let html = await laptop.page();
+  assert.match(html, /Question <b>1<\/b> of 3/);
+  assert.match(html, /new EventSource\('\/screen-events'\)/, 'screen page listens for taps');
+
+  // Call chip from the phone, answer on the laptop.
+  await phone.tap('/k/RDY/1');
+  html = await laptop.page();
+  const qid = /name="qid" value="([^"]+)"/.exec(html)[1];
+  assert.equal((await laptop.post('/answer', { qid, choice: '0' })).status, 303);
+  assert.match(await laptop.page(), /Question <b>2<\/b> of 3/);
+
+  // The phone never got a game of its own (no session at all).
+  assert.equal(await phone.state(), null);
+  events.close();
+});
+
+test('laptop screen: without a live screen, or for another station, the phone plays itself', async (t) => {
+  const { base, clock, close } = await boot();
+  t.after(close);
+  const laptop = browser(base, clock);
+  const phone = browser(base, clock);
+
+  // Paired but not listening (laptop page closed): the phone plays as before.
+  await laptop.get('/screen/1');
+  let res = await phone.tap('/s/SCI/1');
+  assert.equal(res.status, 303);
+  assert.match(await phone.page(), /Now tap a level card/);
+
+  // Listening on station 1: a set-2 card still plays on the phone.
+  const events = await openScreenEvents(laptop);
+  await events.next();
+  res = await phone.tap('/d/EASY/2');
+  assert.equal(res.status, 303);
+  assert.match(await phone.page(), /Now tap a skill card/);
+
+  // A set-1 card goes to the screen.
+  res = await phone.tap('/s/CIV/1');
+  assert.equal(res.status, 200);
+  events.close();
+
+  // /screen/off turns the laptop back into a normal player.
+  await laptop.get('/screen/off');
+  assert.doesNotMatch(await laptop.page(), /EventSource/);
+});
+
+test('laptop screen: a screen that reconnects is sent the current version at once', async (t) => {
+  const { base, clock, close } = await boot();
+  t.after(close);
+  const laptop = browser(base, clock);
+  const phone = browser(base, clock);
+  await laptop.get('/screen/2');
+  let events = await openScreenEvents(laptop);
+  const v0 = await events.next();
+  await phone.tap('/s/SCI/2');
+  const v1 = await events.next();
+  events.close();
+
+  // Like a Wi-Fi drop: the stream is gone, then the browser reconnects.
+  events = await openScreenEvents(laptop);
+  assert.equal(await events.next(), v1, 'reconnect reports the latest version');
+  assert.ok(v1 > v0);
+  events.close();
+});
+
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }

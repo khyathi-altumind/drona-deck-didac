@@ -1,4 +1,4 @@
-const { CARDS, tapPath } = require('./codes');
+const { CARDS, KIND_LABEL, tapPath } = require('./codes');
 const { BANDS } = require('../engine');
 const { HAND_SIZE } = require('./state');
 const { buildInsights, insightsEmail } = require('./insights');
@@ -288,6 +288,12 @@ th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertic
 th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
 .dim{opacity:.45}
+.linkbar{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:70;padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;color:#F3D7A6;background:rgba(40,28,7,.95);border:1px solid rgba(229,169,60,.55);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.linkbar[hidden]{display:none}
+.screen.sent{justify-content:center;max-width:520px}
+.sentcard{text-align:center;padding:32px 24px}
+.sentok{width:64px;height:64px;margin:0 auto 14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:var(--gold-ink);background:linear-gradient(135deg,#fabc4d,#e5a93c);box-shadow:0 0 30px rgba(244,196,106,.45)}
+.sentcard h1{margin-top:6px}
 .rmodal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:rfade .2s ease-out}
 .rcard{position:relative;width:100%;max-width:640px;max-height:calc(100vh - 48px);overflow:auto;background:#0c1f18;border:1px solid rgba(229,169,60,.3);border-radius:16px;padding:36px 40px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
 .rcard .eyebrow{letter-spacing:.2em}
@@ -1126,14 +1132,14 @@ function rulesModal() {
 </script>`;
 }
 
-function playPage(s, { devTools, station, report = null, reportUrl = null }) {
+function playPage(s, { devTools, station, report = null, reportUrl = null, screen = null }) {
   const n = s.notice ? `<div class="notice ${s.notice.tone}" role="status">${esc(s.notice.text)}</div>` : '';
   const done = ['RESULT', 'CLASS', 'SHARE'].includes(s.phase);
   const inHand = s.phase === 'QUESTION' || s.phase === 'ANSWERING';
   const rules = s.showRules && s.phase === 'IDLE' ? rulesModal() : '';
   return layout(
     'Drona Deck',
-    `${header(s, station)}<main class="screen booth${inHand ? ' inhand' : ''}">${n}${inHand ? questionMeta(s) : ''}${done ? '' : slots(s)}${inHand ? steps(s) : ''}${phaseBody(s, { report, reportUrl, station })}</main>${devTools ? devBar(station || 1) : ''}${rules}${buttonScript(station)}`,
+    `${header(s, station)}<main class="screen booth${inHand ? ' inhand' : ''}">${n}${inHand ? questionMeta(s) : ''}${done ? '' : slots(s)}${inHand ? steps(s) : ''}${phaseBody(s, { report, reportUrl, station })}</main>${devTools ? devBar(station || 1) : ''}${rules}${buttonScript(station)}${screen ? screenScript(s.version) : ''}`,
   );
 }
 
@@ -1179,6 +1185,42 @@ function unknownCardPage(tap, { devTools }) {
 <p class="lead">Code <code>${esc(tap.code)}</code> isn’t in the Drona Deck. Please hand it to the booth team.</p>
 <p style="margin-top:16px"><a class="btn" href="/play">Back to the game</a></p></section></main>${devTools ? devBar(1) : ''}`,
   );
+}
+
+// Shown on the phone when its tap was played on the station's laptop screen.
+function sentToScreenPage(tap, { station, debounced }) {
+  const what = tap.card ? `${KIND_LABEL[tap.kind]} · ${tap.card.name}` : tap.code;
+  return layout(
+    'Sent to screen',
+    `<main class="screen sent"><header class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="pill live"><i></i>Station ${station}</span></header>
+<section class="panel glow sentcard"><div class="sentok" aria-hidden="true">✓</div>
+<div class="eyebrow gold">${debounced ? 'Already sent' : 'Sent to the screen'}</div>
+<h1>${esc(what)}<span class="dot">.</span></h1>
+<p class="lead">Look at the Station ${station} screen. Keep tapping cards on this phone.</p></section></main>`,
+  );
+}
+
+// Laptop screen: reloads when a phone tap (or another screen) changes this station's game.
+// The server sends the game's version on every (re)connect, so taps made while offline show at once.
+function screenScript(version) {
+  return `<div class="linkbar" id="linkbar" role="status" hidden>Lost the link to the phone taps. Reconnecting…</div>
+<script>
+(function () {
+  var shown = ${Number(version) || 0};
+  var bar = document.getElementById('linkbar');
+  var leaving = false;
+  if (!window.EventSource) return;
+  var es = new EventSource('/screen-events');
+  es.onmessage = function (e) {
+    if (leaving || Number(e.data) === shown) return;
+    leaving = true;
+    location.replace('/play');
+  };
+  es.onopen = function () { bar.hidden = true; };
+  es.onerror = function () { bar.hidden = false; };
+  window.addEventListener('pagehide', function () { es.close(); });
+})();
+</script>`;
 }
 
 function notFoundPage() {
@@ -1331,4 +1373,4 @@ function devEmailsPage(records, { baseUrl, smtp }) {
   );
 }
 
-module.exports = { playPage, reportPage, reportEmail, reportMissingPage, unknownCardPage, notFoundPage, devIndexPage, devDeckPage, devCodesPage, devLogPage, devEmailsPage, MAIL_RESULT };
+module.exports = { playPage, reportPage, reportEmail, reportMissingPage, unknownCardPage, sentToScreenPage, notFoundPage, devIndexPage, devDeckPage, devCodesPage, devLogPage, devEmailsPage, MAIL_RESULT };

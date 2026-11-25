@@ -157,6 +157,33 @@ The app uses Render's https URL (`RENDER_EXTERNAL_URL`) for the code map and QR 
 The free plan sleeps after 15 minutes idle, so the first request then takes about 30â€“50 s. Use a paid instance for the event.
 The tap log and the saved reports reset on every deploy or restart there, so shared report links from before a restart stop working.
 
+## Laptop screen (no screen mirroring)
+
+The game can show on a laptop while the visitor taps cards with a phone. No mirroring, external reader, Android
+app or card rewrite is needed: every card already opens a page on this server, and the server plays the tap on
+the laptop.
+
+1. On the laptop, open `https://<domain>/screen/1` in Chrome once (use `/screen/2` or `/screen/3` for other
+   stations). It turns into the Station 1 game screen, and the browser remembers it. For a clean full screen,
+   press F11, or start Chrome with `chrome.exe --kiosk https://<domain>/screen/1`.
+2. Tap cards with the phone as usual. Every card whose URL ends in `/1` is played on the Station 1 laptop
+   screen, which updates within a second. The phone only shows "Sent to the screen ✓".
+3. Answers, the score guess and the share screen are used on the laptop (mouse, touch, or the R/A/P and 1–4 keys).
+   Ready / Assist / Pass chips and the Rules card can also be tapped with the phone.
+
+How it works: the laptop page keeps an event stream open (`/screen-events`). A tap is sent to the screen only while
+that stream is open, so with the laptop page closed the phone plays the game itself, exactly as before.
+`/screen/off` turns a laptop back into a normal player.
+
+- **Wi‑Fi drops:** the laptop shows "Lost the link to the phone taps. Reconnecting…" and reconnects by itself
+  every 2 s. Taps made in the meantime show as soon as it is back. If the phone is offline, Chrome on the phone
+  shows its usual "no internet" page; tap the card again once it reconnects.
+- **Safety:** a phone can only drive the Drona game on the screen. It cannot open other websites on the laptop.
+  Anyone holding a set-1 card (or its URL) can play on the Station 1 screen, the same as with the cards today.
+- The laptop and phone need internet access to the deployed site, not the same Wi‑Fi. For a local test,
+  run the server on the laptop and tap the QR codes on `/dev/codes` with the phone (same Wi‑Fi).
+- On Render's free plan the service sleeps after 15 minutes with nothing open; an open laptop screen keeps it awake.
+
 ## When the cards arrive
 
 1. Deploy to the real domain over **HTTPS** (iPhones only open NFC URL tags in the background for https), and start it

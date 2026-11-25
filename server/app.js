@@ -35,6 +35,10 @@ const SCREEN_ACTIONS = new Set(['/answer', '/estimate', '/goto', '/new']);
 
 const COOKIE = 'drona_sid';
 const STATION_COOKIE = 'drona_station';
+// Set on a laptop opened at /screen/N: that browser shows station N's game, and card taps from a phone
+// (tag URLs end in /N) are played there instead of on the phone. See "Laptop screen" in the README.
+const SCREEN_COOKIE = 'drona_screen';
+const HEARTBEAT_MS = 20_000;
 
 function addCookie(res, cookie) {
   const prev = res.getHeader('Set-Cookie');
@@ -160,10 +164,50 @@ function createApp(overrides = {}) {
     res.end();
   }
 
+  // ---------- Laptop screens ----------
+  // One game per station screen, kept here rather than in the laptop's cookie, so a phone tap and the
+  // laptop's own buttons always reach the same game (also after the idle timeout replaces it).
+  const stationSids = new Map(); // station number -> session id
+  const screenListeners = new Map(); // station number -> Set of open event-stream responses
+
+  const screenOf = (req) => {
+    const v = parseCookies(req.headers.cookie)[SCREEN_COOKIE];
+    return /^[1-3]$/.test(v || '') ? Number(v) : null;
+  };
+  const screenLive = (station) => (screenListeners.get(station) || new Set()).size > 0;
+
+  function stationSession(station, t) {
+    const loaded = sessions.load(stationSids.get(station), t);
+    loaded.session.station = station;
+    stationSids.set(station, loaded.session.sid);
+    return loaded;
+  }
+
+  // Every change to a station's game bumps its version and tells that station's screens to reload.
+  function changed(s) {
+    s.version = (s.version || 0) + 1;
+    if (!s.station) return;
+    for (const res of screenListeners.get(s.station) || []) res.write(`data: ${s.version}\n\n`);
+  }
+
+  function screenEvents(req, res, station) {
+    const { session: s } = stationSession(station, now());
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    // Sent on every (re)connect, so a screen that missed taps while offline catches up at once.
+    res.write(`retry: 2000\ndata: ${s.version || 0}\n\n`);
+    if (!screenListeners.has(station)) screenListeners.set(station, new Set());
+    screenListeners.get(station).add(res);
+    const beat = setInterval(() => res.write(': ping\n\n'), HEARTBEAT_MS);
+    req.on('close', () => {
+      clearInterval(beat);
+      screenListeners.get(station).delete(res);
+    });
+  }
+
   function loadSession(req, res, t) {
-    const sid = parseCookies(req.headers.cookie)[COOKIE];
-    const loaded = sessions.load(sid, t);
-    if (loaded.isNew) {
+    const screen = screenOf(req);
+    const loaded = screen ? stationSession(screen, t) : sessions.load(parseCookies(req.headers.cookie)[COOKIE], t);
+    if (loaded.isNew && !screen) {
       addCookie(res, `${COOKIE}=${loaded.session.sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
     }
     if (loaded.expired) {
@@ -174,7 +218,9 @@ function createApp(overrides = {}) {
 
   function handleTap(req, res, url, tap) {
     const t = now();
-    const { session: s, expired } = loadSession(req, res, t);
+    // A phone tapping a card whose station has a laptop screen open plays it on that screen.
+    const forward = !screenOf(req) && tap.set && screenLive(tap.set);
+    const { session: s, expired } = forward ? stationSession(tap.set, t) : loadSession(req, res, t);
     const entry = {
       ts: new Date(t).toISOString(),
       sid: s.sid,
@@ -185,6 +231,7 @@ function createApp(overrides = {}) {
       setRaw: tap.set ? undefined : tap.setRaw,
       source: ['button', 'screen'].includes(url.searchParams.get('src')) ? url.searchParams.get('src') : 'tag',
       expired: expired || undefined,
+      screen: forward || undefined,
       ua: req.headers['user-agent'],
     };
 
@@ -209,8 +256,10 @@ function createApp(overrides = {}) {
       s.lastTap = { key, at: t };
     }
     s.updatedAt = t;
+    if (outcome !== 'debounced') changed(s);
 
     tapLog.add({ ...entry, outcome, phase: s.phase, level: s.level });
+    if (forward) return send(res, 200, views.sentToScreenPage(tap, { station: tap.set, debounced: outcome === 'debounced' }));
     redirect(res, '/play');
   }
 
@@ -228,15 +277,34 @@ function createApp(overrides = {}) {
         station = setParam;
         addCookie(res, `${STATION_COOKIE}=${station}; Path=/; SameSite=Lax; Max-Age=31536000`);
       }
-      station = /^[1-3]$/.test(station || '') ? Number(station) : null;
+      const screen = screenOf(req);
+      station = screen || (/^[1-3]$/.test(station || '') ? Number(station) : null);
       const { session: s } = loadSession(req, res, now());
       const report = s.reportId ? reports.get(s.reportId) : null;
       const reportUrl = report ? `${cfg.BASE_URL}/report/${report.id}` : null;
-      const html = views.playPage(s, { devTools: cfg.DEV_TOOLS, station, report, reportUrl });
+      const html = views.playPage(s, { devTools: cfg.DEV_TOOLS, station, report, reportUrl, screen });
       s.notice = null; // notices show once
       s.showRules = false; // so does the rules pop-up
       s.openForm = false;
       return send(res, 200, html);
+    }
+
+    // Laptop screen: /screen/N makes this browser station N's screen; /screen/off undoes it.
+    const screenMatch = /^\/screen\/([1-3]|off)\/?$/.exec(p);
+    if (method === 'GET' && screenMatch) {
+      if (screenMatch[1] === 'off') {
+        addCookie(res, `${SCREEN_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0`);
+        return redirect(res, '/play');
+      }
+      const n = screenMatch[1];
+      addCookie(res, `${SCREEN_COOKIE}=${n}; Path=/; SameSite=Lax; Max-Age=31536000`);
+      addCookie(res, `${STATION_COOKIE}=${n}; Path=/; SameSite=Lax; Max-Age=31536000`);
+      return redirect(res, '/play');
+    }
+    if (method === 'GET' && p === '/screen-events') {
+      const screen = screenOf(req);
+      if (!screen) return send(res, 404, 'Not a station screen', 'text/plain');
+      return screenEvents(req, res, screen);
     }
 
     // Booth share screen: email the report of the hand just played.
@@ -256,6 +324,7 @@ function createApp(overrides = {}) {
       s.notice = { tone, text: text + who };
       // Re-open the form so the visitor can fix the field. Nothing is prefilled on the shared device.
       s.openForm = INVALID.has(outcome);
+      changed(s);
       tapLog.add({ ts: new Date(t).toISOString(), sid: s.sid, path: p, outcome: `email-${outcome}`, phase: s.phase, level: s.level });
       return redirect(res, '/play');
     }
@@ -288,6 +357,7 @@ function createApp(overrides = {}) {
         // The hand is finished: build the report once, so the result, class and share screens all use it.
         s.reportId = reports.create(buildReport(s)).id;
       }
+      changed(s);
       tapLog.add({ ts: new Date(t).toISOString(), sid: s.sid, path: p, outcome, phase: s.phase, level: s.level });
       return redirect(res, '/play');
     }
@@ -358,6 +428,14 @@ function createApp(overrides = {}) {
   const sweeper = setInterval(() => sessions.sweep(now()), 60_000);
   sweeper.unref();
   server.on('close', () => clearInterval(sweeper));
+
+  // Event streams never end on their own, so end them as soon as the server starts closing
+  // (its 'close' event only fires once every connection is gone).
+  const closeServer = server.close.bind(server);
+  server.close = (cb) => {
+    for (const set of screenListeners.values()) for (const r of set) r.end();
+    return closeServer(cb);
+  };
 
   return { server, sessions, tapLog, reports, emails, cfg };
 }
