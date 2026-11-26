@@ -29,7 +29,7 @@ npm run booth   # booth mode: dev tools and the DEV TAP bar switched off
 ## Game flow (one "Quick Hand")
 
 1. **Tap a subject card**: Science or Civics.
-2. **Tap a level card**: Easy or Tough (NFC only, no screen buttons). Easy plays levels 1â€“3, Tough plays levels 4â€“6.
+2. **Tap a level card**: Easy or Tough. Easy plays levels 1â€“3, Tough plays levels 4â€“6.
    Civics has one question per level, so its hands follow a fixed order: Easy = questions 1 â†’ 2 â†’ 3,
    Tough = questions 4 â†’ 5 â†’ 6, whatever the visitor answers.
 3. **Tap a skill card**: Depth, Stretch, Untangle or Pivot. A skill card tapped earlier is remembered,
@@ -65,7 +65,10 @@ sends through Resend's HTTPS API instead (`server/mailer.js`, no npm packages). 
 verified in Resend: add `dronafy.com` under Resend → Domains and create the DNS records it lists at GoDaddy.
 
 - No `SMTP_HOST` set: contact details are still saved (status `not-configured`), and nothing is sent.
-- Send fails: the address stays saved with status `failed` and the error.
+- Send fails (for example, no internet at the booth): the address stays saved with status `failed` and the error,
+  and the visitor is told it will be emailed once the internet is back. The server retries failed emails and
+  failed Google Sheet rows by itself, 1, 2, 4 … up to 15 minutes apart (48 tries, `RETRY_MAX`), and keeps doing so
+  after a restart because `logs/emails.jsonl` and `logs/reports.jsonl` are reloaded. `/dev/emails` shows the result.
 - `/dev/emails` (and `/dev/emails.csv`) lists every name, phone and email with its send status, so the team can follow up.
 - A report can be emailed at most `EMAILS_PER_REPORT` times (default 3). The booth screen shows only a masked
   address (`stâ€¢â€¢â€¢â€¢@example.com`) and never autofills, so the next visitor cannot see it.
@@ -85,6 +88,11 @@ the user → Mail → Manage email apps), and `MAIL_FROM` must be the same addre
 Gmail also works: `smtp.gmail.com` with a Google [app password](https://myaccount.google.com/apppasswords).
 
 Port 587 upgrades with STARTTLS; port 465 uses TLS from the start. A password is never sent without TLS.
+
+Subject, level and skill can also be picked with the mouse or touch: click a card slot at the top to open it and
+choose a card, or click an Easy/Tough or skill card on the screen. A click opens the same URL as the NFC tag
+(logged with `source: screen`), so it plays exactly the same. Next to **Send my report**, the download button saves
+the complete report as one HTML file (`/report/<id>/download`).
 
 After a hand: tap another skill card to play again in the same subject and level, tap a subject card to start
 fresh, or press **New player**. The Rules card resets at any time. During a hand, subject and skill cards are

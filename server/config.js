@@ -60,4 +60,8 @@ module.exports = {
   SHEET_SECRET: process.env.SHEET_SECRET || '',
   // A report can be emailed at most this many times (stops the form being used to spam an address).
   EMAILS_PER_REPORT: Number(process.env.EMAILS_PER_REPORT) || 3,
+  // Failed emails and Sheet rows (e.g. no internet) are retried with gaps of 1, 2, 4 … up to 15 min, at most
+  // RETRY_MAX times. RETRY_MS is how often the outbox is checked; RETRY_MS=0 switches retries off.
+  RETRY_MS: process.env.RETRY_MS !== undefined ? Number(process.env.RETRY_MS) : 60_000,
+  RETRY_MAX: Number(process.env.RETRY_MAX) || 48,
 };

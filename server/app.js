@@ -124,7 +124,7 @@ function createApp(overrides = {}) {
     }
     try {
       await mailer.send({ to: rec.email, ...views.reportEmail(report, `${cfg.BASE_URL}/report/${report.id}`, { name: rec.name }) });
-      emails.update(rec.id, { status: 'sent', sentAt: new Date(now()).toISOString() });
+      emails.update(rec.id, { status: 'sent', sentAt: new Date(now()).toISOString(), error: null });
       return 'sent';
     } catch (err) {
       console.error('[mail] send failed:', err.message);
@@ -132,6 +132,37 @@ function createApp(overrides = {}) {
       return 'failed';
     }
   }
+
+  // Outbox: no internet at the booth means the email and the Sheet row fail. The details are already
+  // saved, so they are retried in the background with backoff (1, 2, 4 … up to 15 min apart) until they
+  // go through or RETRY_MAX attempts are used. Records reload from EMAIL_FILE, so a restart keeps them.
+  const nextTry = new Map(); // record id -> time of the next attempt
+  let retrying = false;
+  async function retryOutbox() {
+    if (retrying) return;
+    retrying = true;
+    try {
+      for (const rec of emails.recent(Infinity).reverse()) {
+        const mailDue = mailer && rec.status === 'failed';
+        const sheetDue = sheet && rec.sheet === 'failed';
+        if (!mailDue && !sheetDue) continue;
+        const tries = rec.retries || 0;
+        if (tries >= cfg.RETRY_MAX || now() < (nextTry.get(rec.id) || 0)) continue;
+        const report = reports.get(rec.reportId);
+        if (!report) continue; // report gone (e.g. hosting restart): nothing to send
+        emails.update(rec.id, { retries: tries + 1 });
+        if (mailDue && (await sendReport(report, rec)) === 'sent') console.log(`[outbox] report emailed after ${tries + 1} retries`);
+        // Offline, both usually fail together, so the Sheet row goes in after the email with the new status.
+        if (sheetDue) await toSheet(report, rec);
+        if (rec.status === 'failed' || rec.sheet === 'failed') nextTry.set(rec.id, now() + Math.min(60_000 * 2 ** tries, 15 * 60_000));
+        else nextTry.delete(rec.id);
+      }
+    } finally {
+      retrying = false;
+    }
+  }
+  const retryTimer = cfg.RETRY_MS > 0 ? setInterval(() => retryOutbox().catch((e) => console.error('[outbox]', e.message)), cfg.RETRY_MS) : null;
+  if (retryTimer) retryTimer.unref();
 
   // On-screen buttons (answers, estimate, end screens) post here. Easy/Tough are NFC cards only.
   function screenAction(s, p, body) {
@@ -370,6 +401,15 @@ function createApp(overrides = {}) {
       return send(res, 200, views.reportPage(report, { url: `${cfg.BASE_URL}/report/${report.id}`, mail: url.searchParams.get('mail') }));
     }
 
+    // Download button next to "Send my report": the full report as one HTML file that opens offline.
+    const downloadMatch = /^\/report\/([A-Za-z0-9_-]{4,32})\/download\/?$/.exec(p);
+    if (method === 'GET' && downloadMatch) {
+      const report = reports.get(downloadMatch[1]);
+      if (!report) return send(res, 404, views.reportMissingPage());
+      const html = views.reportPage(report, { url: `${cfg.BASE_URL}/report/${report.id}`, saved: true });
+      return send(res, 200, html, 'text/html; charset=utf-8', { 'Content-Disposition': `attachment; filename="drona-report-${report.id}.html"` });
+    }
+
     if (method === 'GET' && p === '/health') {
       return send(res, 200, JSON.stringify({ ok: true, baseUrl: cfg.BASE_URL }), 'application/json');
     }
@@ -434,10 +474,11 @@ function createApp(overrides = {}) {
   const closeServer = server.close.bind(server);
   server.close = (cb) => {
     for (const set of screenListeners.values()) for (const r of set) r.end();
+    if (retryTimer) clearInterval(retryTimer);
     return closeServer(cb);
   };
 
-  return { server, sessions, tapLog, reports, emails, cfg };
+  return { server, sessions, tapLog, reports, emails, cfg, retryOutbox };
 }
 
 module.exports = { createApp };

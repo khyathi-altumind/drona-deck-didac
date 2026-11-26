@@ -138,7 +138,45 @@ test('a failed send keeps the saved address and marks it failed', async (t) => {
   const [rec] = app.emails.recent();
   assert.equal(rec.status, 'failed');
   assert.equal(rec.error, 'smtp down');
-  assert.match(await b.page(), /sending failed just now/);
+  assert.match(await b.page(), /emailed automatically as soon as it’s back/);
+});
+
+test('offline: the email and the Sheet row are retried until the internet is back', async (t) => {
+  const mailer = fakeMailer();
+  const rows = [];
+  const sheet = { fail: true, async add(row) { if (this.fail) throw new Error('offline'); rows.push(row); } };
+  mailer.fail = true;
+  const { app, base, clock, close } = await boot({ mailer, sheet, RETRY_MS: 0, RETRY_MAX: 5 });
+  t.after(close);
+  const b = browser(base, clock);
+  await finishHand(b);
+  await b.post('/email', { ...who, email: 'a@example.com' });
+  const [rec] = app.emails.recent();
+  assert.equal(rec.status, 'failed');
+  assert.equal(rec.sheet, 'failed');
+
+  // Still offline: one retry, then it waits (backoff) before the next one.
+  await app.retryOutbox();
+  assert.equal(rec.retries, 1);
+  await app.retryOutbox();
+  assert.equal(rec.retries, 1, 'not retried again before the backoff gap');
+
+  // Internet back: the next due retry sends both, and the Sheet row has the new status.
+  mailer.fail = false;
+  sheet.fail = false;
+  clock.t += 10 * 60_000;
+  await app.retryOutbox();
+  assert.equal(rec.status, 'sent');
+  assert.equal(rec.sheet, 'saved');
+  assert.equal(mailer.sent.length, 1);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].status, 'sent');
+
+  // Nothing left to do: no duplicate email or row.
+  clock.t += 60 * 60_000;
+  await app.retryOutbox();
+  assert.equal(mailer.sent.length, 1);
+  assert.equal(rows.length, 1);
 });
 
 test('without SMTP set up the address is still saved', async (t) => {

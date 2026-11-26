@@ -420,6 +420,52 @@ test('laptop screen: a screen that reconnects is sent the current version at onc
   events.close();
 });
 
+test('on-screen picking: slots and pick cards link to the same routes as the NFC tags', async (t) => {
+  const { app, base, clock, close } = await boot();
+  t.after(close);
+  const b = browser(base, clock);
+  let page = await b.page('/play?set=1');
+  assert.match(page, /class="slot subject next pickable"/);
+  assert.match(page, /href="\/s\/SCI\/1\?src=screen"/);
+  assert.doesNotMatch(page, /class="slot level[^"]*pickable/, 'level is not pickable before a subject');
+
+  await b.tap('/s/CIV/1?src=screen');
+  page = await b.page();
+  assert.match(page, /<a class="pick cardhint" href="\/d\/TOUGH\/1\?src=screen"/);
+  await b.tap('/d/TOUGH/1?src=screen');
+  assert.match(await b.page(), /href="\/p\/PIV\/1\?src=screen"/);
+  await b.tap('/p/PIV/1?src=screen');
+  const s = await b.state();
+  assert.equal(s.phase, 'QUESTION');
+  page = await b.page();
+  assert.match(page, /<div class="qlabel q">Question<\/div>/);
+  if (s.question.context) assert.match(page, /<div class="qlabel">Context<\/div>/);
+  assert.doesNotMatch(page, /class="[^"]*pickable/, 'cards are locked during a hand');
+  assert.ok(app.tapLog.recent(3).every((e) => e.source === 'screen'));
+});
+
+test('rules pop-up shows the Dronafy logo; the report can be downloaded', async (t) => {
+  const { base, clock, close } = await boot();
+  t.after(close);
+  const b = browser(base, clock);
+  assert.match(await b.page(), /class="rlogo"><svg class="dmark"[\s\S]*Dronafy/);
+  await b.tap('/s/SCI/1');
+  await b.tap('/d/EASY/1');
+  await b.tap('/p/DEP/1');
+  await playHandCorrectly(b);
+  await b.post('/estimate', { n: '2' });
+  const { reportId } = await b.state();
+  assert.match(await b.page(), new RegExp(`Send my report</button><a class="dlbtn" href="/report/${reportId}/download" download`));
+
+  const res = await fetch(`${base}/report/${reportId}/download`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-disposition'), /attachment; filename="drona-report-/);
+  const html = await res.text();
+  assert.match(html, /Quick Hand report/);
+  assert.doesNotMatch(html, /<dialog/, 'the downloaded copy has no email form');
+  assert.equal((await fetch(`${base}/report/nope1234/download`)).status, 404);
+});
+
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }

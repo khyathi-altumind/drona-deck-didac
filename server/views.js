@@ -88,7 +88,7 @@ h2{font-size:24px;line-height:1.2}
 .panel.hero{border-radius:28px;padding:32px;border-color:rgba(16,185,129,.3);box-shadow:0 24px 60px rgba(0,0,0,.65),0 0 40px -10px rgba(244,196,106,.22)}
 
 /* Card slots: subject / level / skill */
-.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
 .slot{position:relative;background:rgba(8,30,21,.85);border:1px solid rgba(16,185,129,.25);border-radius:18px;padding:14px 16px;min-width:0;box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden}
 .slot.on{border-color:rgba(16,185,129,.42)}
 .slot.next{border-color:var(--gold);background:#0f2c1f;animation:flash 1.4s ease-out}
@@ -106,6 +106,31 @@ h2{font-size:24px;line-height:1.2}
 .slot .sbar{margin-top:12px;height:4px;border-radius:4px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
 .slot.on .sbar{background:rgba(16,185,129,.45)}
 .slot.next .sbar::after{content:'';position:absolute;top:0;bottom:0;left:0;width:32%;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:shimmer 1.8s infinite}
+.slot.pickable{cursor:pointer;transition:border-color .15s,background .15s}
+.slot.pickable:hover,.slot.pickable:focus-visible{border-color:var(--gold);outline:none}
+.slot .sic{display:inline-flex;align-items:center;gap:6px}
+.slot .scaret{font-size:13px;color:var(--soft);transition:transform .2s}
+.slot.open .scaret{transform:rotate(180deg);color:var(--gold)}
+.slot.open{border-color:var(--gold);background:#0f2c1f}
+.slot .sopts{display:none;flex-wrap:wrap;gap:8px;margin-top:12px}
+.slot.open .sopts{display:flex;animation:rfade .18s ease-out}
+.sopt{flex:1 1 calc(50% - 8px);min-width:0;display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid rgba(16,185,129,.3);border-top:3px solid var(--acc);background:linear-gradient(180deg,#113123,#0c2319);color:var(--ivory);font-family:var(--serif);font-weight:600;font-size:17px;text-decoration:none;text-align:center;overflow-wrap:anywhere}
+.sopt:hover,.sopt:focus-visible{border-color:var(--gold);border-top-color:var(--acc);outline:none;background:#173d2c}
+.sopt:active{transform:scale(.97)}
+.sopt.cur{box-shadow:inset 0 0 0 1px var(--gold)}
+a.pick{display:block;text-decoration:none}
+a.cardhint{cursor:pointer}
+a.cardhint:hover,a.cardhint:focus-visible{border-color:var(--gold);border-top-color:var(--acc);outline:none}
+a.cardhint:active{transform:scale(.985)}
+.qlabel{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-hi);margin:0 0 6px}
+.qlabel.q{color:#34d399}
+.stimbody{min-width:0}
+.sendrow{display:flex;gap:10px;align-items:stretch;margin-top:16px}
+.sendrow .btn{flex:1}
+.dlbtn{flex:none;display:inline-flex;align-items:center;justify-content:center;width:56px;min-height:56px;border-radius:14px;border:1px solid rgba(93,155,126,.35);background:rgba(255,255,255,.04);color:var(--gold-hi);font-size:22px;text-decoration:none}
+.dlbtn:hover,.dlbtn:focus-visible{border-color:var(--gold);outline:none}
+.rlogo{display:flex;align-items:center;gap:10px;margin:0 0 18px;font-family:var(--serif);font-weight:600;font-size:22px;color:var(--gold-hi);letter-spacing:-.01em}
+.rlogo .dmark{width:36px;height:36px;flex:none}
 
 /* Question meta + progress */
 .qmeta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:0 2px}
@@ -363,6 +388,8 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
   .slot .val{font-size:17px}
   .slot .badge{font-size:8.5px;padding:2px 6px;letter-spacing:.06em}
   .slot .sbar{margin-top:9px}
+  .sopt{flex-basis:100%;min-height:36px;font-size:14px;padding:4px 6px;border-radius:9px}
+  .slot .sopts{gap:5px;margin-top:8px}
   /* Dev bar: one swipeable row so it doesn't cover the answers */
   .devbar{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 10px}
   .devbar a,.devbar b{flex:none}
@@ -432,6 +459,9 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
   .stim-ic{width:28px;height:28px;font-size:15px;border-radius:8px}
   .context{font-size:clamp(12.5px,3.9vh,15px);line-height:1.4}
   .stem{font-size:clamp(15px,5vh,20px);line-height:1.3}
+  .qlabel{font-size:9px;letter-spacing:.12em;margin-bottom:2px}
+  .sopt{min-height:34px;font-size:14px;padding:4px 6px;border-radius:9px}
+  .slot .sopts{gap:5px;margin-top:7px}
   .callzone{margin:0;padding:0 0 0 18px;background:none;border-top:0;border-left:1px solid rgba(16,185,129,.2);align-self:stretch}
   .callzone .eyebrow{font-size:9.5px}
   .callzone .small{display:none}
@@ -494,6 +524,8 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12px}
   .rmodal{padding:12px}
   .rcard{max-height:calc(100vh - 24px);padding:18px 24px}
   .rcard h2{font-size:24px;margin-top:4px}
+  .rlogo{margin-bottom:6px;font-size:17px}
+  .rlogo .dmark{width:26px;height:26px}
   .rclose{top:14px;right:14px;width:34px;height:34px;font-size:20px}
   .rlist{grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,auto);grid-auto-flow:column;gap:8px 24px;margin-top:12px}
   .rlist li{font-size:14px;line-height:1.4;gap:10px}
@@ -613,22 +645,71 @@ function steps(s) {
   return `<div class="steps" aria-label="Question ${s.hand.length + 1} of ${HAND_SIZE}">${out}</div>`;
 }
 
+// Cards each slot can be picked from on screen (mouse or touch), as well as by an NFC tap.
+const SLOT_CHOICES = {
+  subject: ['s', ['SCI', 'CIV']],
+  level: ['d', ['EASY', 'TOUGH']],
+  skill: ['p', ['DEP', 'STR', 'UNT', 'PIV']],
+};
+
 // The three NFC card slots. The slot waiting for the next tap glows gold.
-function slots(s) {
+// Before the hand starts, clicking a slot expands it into its cards; each one is a link to the same
+// route as the NFC tag (?src=screen), so a click and a tap play exactly the same.
+function slots(s, station) {
   const next = { IDLE: 'subject', DIFFICULTY: 'level', SKILL: 'skill' }[s.phase];
   const band = s.difficulty ? BANDS[s.difficulty] : null;
+  const choosing = ['IDLE', 'DIFFICULTY', 'SKILL'].includes(s.phase);
+  const current = { subject: s.subject, level: s.difficulty, skill: s.skill };
   const slot = (key, n, label, value, badge) => {
-    const cls = ['slot', key, value ? 'on' : '', next === key ? 'next' : ''].filter(Boolean).join(' ');
-    const b = next === key ? '<span class="badge gold">Tap now</span>' : badge || (value ? '' : '<span class="badge">Waiting</span>');
-    return `<div class="${cls}"><div class="shead"><span class="slab"><i></i>0${n} · ${label}</span><span class="sic">${icon('nfc')}</span></div>
-<div class="sbody"><div class="val ${value ? '' : 'empty'}">${value ? esc(value) : 'Tap card —'}</div>${b}</div><div class="sbar"></div></div>`;
+    // A level only makes sense once a subject is chosen.
+    const pickable = choosing && (key !== 'level' || s.subject);
+    const cls = ['slot', key, value ? 'on' : '', next === key ? 'next' : '', pickable ? 'pickable' : ''].filter(Boolean).join(' ');
+    const b = next === key ? `<span class="badge gold">${pickable ? 'Tap or click' : 'Tap now'}</span>` : badge || (value ? '' : '<span class="badge">Waiting</span>');
+    let opts = '';
+    if (pickable) {
+      const [kind, codes] = SLOT_CHOICES[key];
+      opts = `<div class="sopts" id="sopts-${key}">${codes.map((c) => {
+        const card = CARDS[kind][c];
+        return `<a class="sopt${current[key] === c ? ' cur' : ''}" style="--acc:${card.accent || 'var(--gold)'}" href="${tapPath(kind, c, station)}?src=screen">${esc(card.name)}</a>`;
+      }).join('')}</div>`;
+    }
+    const attrs = pickable ? ` role="button" tabindex="0" aria-expanded="false" aria-controls="sopts-${key}" aria-label="Choose ${label.toLowerCase()}"` : '';
+    return `<div class="${cls}"${attrs}><div class="shead"><span class="slab"><i></i>0${n} · ${label}</span><span class="sic">${pickable ? '<span class="scaret" aria-hidden="true">▾</span>' : ''}${icon('nfc')}</span></div>
+<div class="sbody"><div class="val ${value ? '' : 'empty'}">${value ? esc(value) : 'Tap card —'}</div>${b}</div><div class="sbar"></div>${opts}</div>`;
   };
   const tapped = '<span class="badge em">Tapped</span>';
   return `<section class="slots" aria-label="Cards on the reader">
 ${slot('subject', 1, 'Subject', s.subject && CARDS.s[s.subject].name, s.subject ? tapped : '')}
 ${slot('level', 2, 'Level', band && band.name, band ? tapped : '')}
 ${slot('skill', 3, 'Skill', s.skill && CARDS.p[s.skill].name, s.skill ? tapped : '')}
-</section>`;
+</section>${choosing ? slotScript() : ''}`;
+}
+
+// Click (or Enter/Space) on a slot opens its cards; clicking elsewhere or Escape closes it.
+function slotScript() {
+  return `<script>
+(function () {
+  var all = document.querySelectorAll('.slot.pickable');
+  function setOpen(el, on) { el.classList.toggle('open', on); el.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  function closeAll(except) { all.forEach(function (el) { if (el !== except) setOpen(el, false); }); }
+  all.forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      if (e.target.closest('.sopt')) return; // a card link: let it go
+      var on = !el.classList.contains('open');
+      closeAll(el); setOpen(el, on);
+    });
+    el.addEventListener('keydown', function (e) {
+      if (e.target !== el || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault(); e.stopPropagation();
+      var on = !el.classList.contains('open');
+      closeAll(el); setOpen(el, on);
+      var first = on && el.querySelector('.sopt'); if (first) first.focus();
+    });
+  });
+  document.addEventListener('click', function (e) { if (!e.target.closest('.slot.pickable')) closeAll(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); });
+})();
+</script>`;
 }
 
 // Subject · skill tag and the current rung of the skill ladder.
@@ -638,8 +719,12 @@ function questionCrumb(s) {
   return `<div class="qcrumb"><span class="tagbox">${esc(CARDS.s[s.subject].name)} · ${esc(CARDS.p[s.skill].name)}</span>${call}</div>`;
 }
 
-function context(q, subject) {
-  return q.context ? `<div class="stim"><span class="stim-ic">${icon(subject === 'CIV' ? 'book' : 'flask')}</span><div class="context">${esc(q.context)}</div></div>` : '';
+// The question text with labels, so visitors can tell the context (stimulus) from the question itself.
+function questionText(q, subject) {
+  const ctx = q.context
+    ? `<div class="stim"><span class="stim-ic">${icon(subject === 'CIV' ? 'book' : 'flask')}</span><div class="stimbody"><div class="qlabel">Context</div><div class="context">${esc(q.context)}</div></div></div>`
+    : '';
+  return `${ctx}<div class="qlabel q">Question</div><p class="stem">${esc(q.stem)}</p>`;
 }
 
 const CALL_TOKENS = [
@@ -705,7 +790,7 @@ function questionList(r) {
       const mark = q.call === 'PAS' ? '<span class="mark skip">Skipped</span>' : q.correct ? '<span class="mark ok">✓ Correct</span>' : '<span class="mark no">✗ Not quite</span>';
       const yours = q.choice === null ? 'Passed' : `${LETTERS[q.choice]}. ${q.options[q.choice]}`;
       return `<details class="qrow"><summary><b>Q${q.n}</b><span class="chip sm ${q.call}">${CALL_NAME[q.call]}</span>${mark}<span class="small">L${q.level} · ${esc(q.levelName)}</span><span class="msg">${esc(q.message)}</span></summary>
-<div class="body">${q.context ? `<p>${esc(q.context)}</p>` : ''}<p><b>${esc(q.stem)}</b></p>
+<div class="body">${q.context ? `<div class="qlabel">Context</div><p style="margin-top:2px">${esc(q.context)}</p>` : ''}<div class="qlabel q">Question</div><p style="margin-top:2px"><b>${esc(q.stem)}</b></p>
 <p>Your answer: ${esc(yours)}</p><p>Correct answer: ${LETTERS[q.answer]}. ${esc(q.options[q.answer])}</p><p>${esc(q.explanation)}</p></div></details>`;
     })
     .join('');
@@ -799,7 +884,9 @@ function reportWhen(r) {
 
 // "Get my complete report" button and the pop-up form (name, phone, email). On the shared booth device
 // autocomplete is off, so the next visitor never sees the previous visitor's details.
-function reportForm(action, { booth = false, open = false } = {}) {
+const DOWNLOAD_ICON = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 20h14"/></svg>';
+
+function reportForm(action, { booth = false, open = false, download = null } = {}) {
   const ac = (v) => (booth ? 'off' : v);
   return `<button class="btn wide" type="button" id="getreport" data-open="${open ? '1' : ''}">Get my complete report →</button>
 <dialog class="getreport" id="email" aria-labelledby="gr-title">
@@ -811,7 +898,7 @@ function reportForm(action, { booth = false, open = false } = {}) {
 <label class="field"><span class="eyebrow">Name</span><input type="text" name="name" required maxlength="80" autocomplete="${ac('name')}" placeholder="Your name"></label>
 <label class="field"><span class="eyebrow">Phone number</span><input type="tel" name="phone" required maxlength="20" minlength="7" inputmode="tel" autocomplete="${ac('tel')}" placeholder="98765 43210"></label>
 <label class="field"><span class="eyebrow">Email</span><input type="email" name="email" required maxlength="254" inputmode="email" autocomplete="${ac('email')}" placeholder="you@gmail.com"></label>
-<button class="btn wide" type="submit" style="margin-top:16px">Send my report</button>
+<div class="sendrow"><button class="btn" type="submit">Send my report</button>${download ? `<a class="dlbtn" href="${esc(download)}" download aria-label="Download my report" title="Download my report">${DOWNLOAD_ICON}</a>` : ''}</div>
 <p class="small" style="margin:8px 0 0">We save these details only to send you this report and follow up about Drona.</p>
 </form></dialog>
 <script>
@@ -835,7 +922,7 @@ function reportForm(action, { booth = false, open = false } = {}) {
 const MAIL_RESULT = {
   sent: ['info', 'Report sent. Check your inbox (and the spam folder).'],
   saved: ['info', 'Details saved. The Drona team will send your report shortly.'],
-  failed: ['warn', 'Details saved, but sending failed just now. The Drona team will send your report.'],
+  failed: ['warn', 'Details saved. The internet seems to be down, so your report will be emailed automatically as soon as it’s back.'],
   'invalid-name': ['warn', 'Please enter your name.'],
   'invalid-phone': ['warn', 'That phone number doesn’t look right. Please check it and try again.'],
   invalid: ['warn', 'That email address doesn’t look right. Please check it and try again.'],
@@ -932,7 +1019,7 @@ function reportCta(action, opts) {
 // ---------- Booth screens ----------
 
 function phaseBody(s, { report, reportUrl, station }) {
-  const form = { booth: true, open: Boolean(s.openForm) };
+  const form = { booth: true, open: Boolean(s.openForm), download: report ? `/report/${report.id}/download` : null };
   switch (s.phase) {
     case 'IDLE':
       return welcomeHero();
@@ -940,18 +1027,18 @@ function phaseBody(s, { report, reportUrl, station }) {
     case 'DIFFICULTY':
       return `<section class="panel glow"><div class="eyebrow gold">${esc(CARDS.s[s.subject].name)} chosen</div>
 <h1 style="margin-top:8px">Now tap a level card<span class="dot">.</span></h1>
-<p class="lead">Place an Easy or Tough card on the reader.</p>
-<div class="big two">${['EASY', 'TOUGH'].map((k) => `<div class="pick cardhint" style="--acc:${CARDS.d[k].accent}"><div class="ph"><span class="pdot"></span>${icon('nfc')}</div><b>${esc(CARDS.d[k].name)}</b><small>${esc(CARDS.d[k].prompt)}</small></div>`).join('')}</div>${s.skill ? `<p class="small" style="margin-top:14px">${esc(CARDS.p[s.skill].name)} is saved. Your hand starts as soon as you tap a level card.</p>` : ''}</section>`;
+<p class="lead">Place an Easy or Tough card on the reader, or click one below.</p>
+<div class="big two">${['EASY', 'TOUGH'].map((k) => `<a class="pick cardhint" href="${tapPath('d', k, station)}?src=screen" style="--acc:${CARDS.d[k].accent}"><div class="ph"><span class="pdot"></span>${icon('nfc')}</div><b>${esc(CARDS.d[k].name)}</b><small>${esc(CARDS.d[k].prompt)}</small></a>`).join('')}</div>${s.skill ? `<p class="small" style="margin-top:14px">${esc(CARDS.p[s.skill].name)} is saved. Your hand starts as soon as you tap a level card.</p>` : ''}</section>`;
 
     case 'SKILL':
       return `<section class="panel glow"><div class="eyebrow gold">${esc(CARDS.s[s.subject].name)} · ${esc(BANDS[s.difficulty].name)}</div>
 <h1 style="margin-top:8px">Now tap a skill card<span class="dot">.</span></h1>
-<p class="lead">Pick the thinking lens for your three questions.</p>
-<div class="big two quad">${['DEP', 'STR', 'UNT', 'PIV'].map((k) => `<div class="pick cardhint pillar" style="--acc:${CARDS.p[k].accent};--tint:${PILLAR_TINT[k]}"><div class="ph"><span class="pdot"></span>${icon('nfc')}</div><b>${esc(CARDS.p[k].name)}</b><small>${esc(CARDS.p[k].prompt)}</small></div>`).join('')}</div></section>`;
+<p class="lead">Pick the thinking lens for your three questions: tap a card, or click one below.</p>
+<div class="big two quad">${['DEP', 'STR', 'UNT', 'PIV'].map((k) => `<a class="pick cardhint pillar" href="${tapPath('p', k, station)}?src=screen" style="--acc:${CARDS.p[k].accent};--tint:${PILLAR_TINT[k]}"><div class="ph"><span class="pdot"></span>${icon('nfc')}</div><b>${esc(CARDS.p[k].name)}</b><small>${esc(CARDS.p[k].prompt)}</small></a>`).join('')}</div></section>`;
 
     case 'QUESTION':
       return `<section class="panel glow qcard"><div class="qmain">${questionCrumb(s)}
-${context(s.question, s.subject)}<p class="stem">${esc(s.question.stem)}</p></div>
+${questionText(s.question, s.subject)}</div>
 <div class="callzone"><div class="eyebrow gold">Declare your call · tap a chip on the reader or a tile below</div>
 <p class="small" style="margin:4px 0 0">Choose how you will answer before you see the options.</p>
 ${callTokens(station)}</div>
@@ -963,7 +1050,7 @@ ${callTokens(station)}</div>
         .map((o, i) => `<button class="opt" name="choice" value="${i}" data-key="${i + 1}"><b>${LETTERS[i]}</b><span>${esc(o)}</span></button>`)
         .join('');
       return `<section class="panel glow qcard answer"><div class="qmain">${questionCrumb(s)}
-${context(q, s.subject)}<p class="stem">${esc(q.stem)}</p>
+${questionText(q, s.subject)}
 ${s.call === 'AST' ? `<div class="hint"><span class="ti">${icon('help')}</span><div><b>Hint.</b> ${esc(q.hint)}</div></div>` : ''}</div>
 <form method="post" action="/answer"><input type="hidden" name="qid" value="${esc(q.id)}"><div class="opts">${opts}</div></form>
 </section>`;
@@ -1106,6 +1193,9 @@ const RULE_STEPS = [
   'See your result, compare with the class, and take your report with you.',
 ];
 
+// Dronafy logo mark (the gold "D" from the Dronafy design system favicon), inline so it needs no file.
+const DRONAFY_MARK = '<svg class="dmark" xmlns="http://www.w3.org/2000/svg" viewBox="207 117 386 386" fill="#C9A84C" aria-hidden="true"><path d="M218.8,130.6c0,0,39.5,6.5,46.3,65.1c0,40.6,0,78.4,0,124.3c0,11,0,78.1,0,95.8l0,0l0,1.1c0,0.3,0,0.7,0,1l0,0l0,17.4c95.2-30.4,151.5,45.2,157.5,53.7c-48.8-72.1-110.9-77.8-140.5-75.7c-0.9-10.2,8.1-43.6,35.1-70.5c0.9-0.7,1.9-1.2,2.3-2.4c-0.5-0.3-1-0.5-1.4-0.7c-1.7-0.7-3.5-0.6-5.3-1c-2.7-0.6-4.6-2.9-4.7-5.6c-0.1-1.1,0.1-2.2,0.6-3.3c1-2.4,2.7-4.2,4.8-5.6c2.7-1.8,5.5-3.5,8.2-5.4c4.1-2.8,7.4-6.4,9.6-10.9c0.4-0.8,1-1.6,0.7-2.6c-0.2,0.1-0.4,0.2-0.5,0.3c-5.2,5.4-11.6,9.1-18.6,11.7c-3.1,1.2-6.1,2.9-8.6,5.2c-3.8,3.6-6.2,7.7-5.8,13c0,0.5,0.2,1.1-0.4,1.8c-1.7-3.3-2-6.5-1.3-9.8c1.1-5.5,4.3-9.7,8.5-13.1c2.5-2,5.3-3.8,7.9-5.7c3.5-2.5,6.4-5.8,8.4-9.6c3.7-7.2,4.3-14.4-0.5-21.8c-1.2-1.8-2.2-3.7-3.3-5.6c-6.4-11.2-10.3-23.7-10.4-36.6c-0.2-19,6.5-35.4,20.6-48.5c0.4-0.4,1.1-0.6,0.9-1.4c-10.5-3.9-16.9-12.3-17.5-23c0-0.1,0-0.2,0-0.2c-0.6-13.1,7-25.3,18.9-30.9c0.2-0.1,0.4-0.2,0.5-0.2C310.1,130.6,218.8,130.6,218.8,130.6z"/><path d="M577.8,272.1c-3.7-20.5-10.7-39.8-21.2-57.8c-16.7-28.6-40-50.1-69.7-64.6c-26.8-13-55.3-18.8-84.8-19c-12.3-0.1-24.7-0.1-37-0.1c12.6,4.6,21.5,12.2,21.5,12.8c-18.4-10.1-39.2,4.1-45.4,14.6c-0.1,0.2-0.1,0.5,0.2,0.6c0.5-0.4,1-0.9,1.5-1.4c5.2-5,11.2-8.8,18.1-11c4.7-1.5,9.5-2.2,14.5-1.4c3.9,0.7,7.4,2.3,9.8,5.6c0.3,0.4,0.9,0.9,0.3,1.7c-7.2,0-14.1,1.6-20.6,4.6c-6.5,3-12.4,6.8-17.2,12.9c1.4-0.1,2.1-0.7,2.8-1.1c2.8-1.4,5.6-3,8.5-4.3c6.4-3,13.1-5,20.2-6c8.2-1.2,16.3-1.1,24.4,0c11.1,1.5,21.7,4.7,31.4,10.2c8.3,4.7,15.4,11,20,20c2,3.9,2.5,8.3,2.3,12.6c0,0.9-0.3,1.6-1.3,2c0.7-0.2,0.9,0.4,1.2,0.8c3.7,4.9,5.6,10.9,7.7,16.7c1.9,5.2,3.4,10.4,4.3,15.8c0.9,4.9,1.4,10-1.2,14.6c-0.5,0.8-0.2,1.4,0.1,2.2c1.2,2.8,2.5,5.7,3.6,8.5c3,7.3,6.2,14.5,8.6,22c1.8,5.7-1.6,11.3-7.2,13.5c-0.1,0-0.2,0.1-0.4,0.1c-1.3,0.2-1.4,1-1,2.1c0.1,0.3,0.2,0.7,0.3,1c1,5.1,0.2,9.6-4,13.1c-2.2,0.4-4.1,0.1-2,1.2c2.1,1,2.9,3.8,1.4,5.6c0,0,0,0,0,0c-2.3,2.8-2.1,5.7-0.3,8.6c1.3,2.1,2.8,4.1,4.2,6.2c3.9,5.8,6.4,12.1,7.4,19.1c1,7.2,0.3,14.2-2.8,20.9c-0.6,1.4-1.3,2.7-2.3,3.7c-0.7-0.2-0.2-1.2-1.2-1c-0.2,0.7-0.3,1.3-0.5,2c-4.5,14.6-14.7,23.2-28.8,27.9c-1.5,0.5-1.6,0.4-1.7-1.3c-0.1-6.8-2.1-13.4-6.1-18.8c-3.4-4.6-7.8-8.3-12.2-11.9c-6.1-5-11.7-10.4-16.4-16.8c-0.3-0.3-0.4-0.8-1.1-0.9c-0.8,19.9,42.8,66.8,49.7,83c5,11.6,8.4,23.5,8.1,36.2c0,0.3,0,0.7,0.3,1c110-15.8,116-135.5,117-155.7C581.7,305.3,580.8,288.6,577.8,272.1z"/></svg>';
+
 // "How to play" pop-up, shown on the welcome screen of a new session, after the Rules card and after New player.
 // Closes with the buttons, the backdrop or Escape; tapping any card also moves past it.
 function rulesModal() {
@@ -1113,6 +1203,7 @@ function rulesModal() {
   return `<div class="rmodal" id="rules" role="dialog" aria-modal="true" aria-labelledby="rules-title">
 <div class="rcard">
 <button type="button" class="rclose" data-close aria-label="Close">×</button>
+<div class="rlogo">${DRONAFY_MARK}<span>Dronafy</span></div>
 <div class="eyebrow gold">How to play</div>
 <h2 id="rules-title">The Drona Deck<span class="dot">.</span></h2>
 <ol class="rlist">${items}</ol>
@@ -1139,13 +1230,14 @@ function playPage(s, { devTools, station, report = null, reportUrl = null, scree
   const rules = s.showRules && s.phase === 'IDLE' ? rulesModal() : '';
   return layout(
     'Drona Deck',
-    `${header(s, station)}<main class="screen booth${inHand ? ' inhand' : ''}">${n}${inHand ? questionMeta(s) : ''}${done ? '' : slots(s)}${inHand ? steps(s) : ''}${phaseBody(s, { report, reportUrl, station })}</main>${devTools ? devBar(station || 1) : ''}${rules}${buttonScript(station)}${screen ? screenScript(s.version) : ''}`,
+    `${header(s, station)}<main class="screen booth${inHand ? ' inhand' : ''}">${n}${inHand ? questionMeta(s) : ''}${done ? '' : slots(s, station)}${inHand ? steps(s) : ''}${phaseBody(s, { report, reportUrl, station })}</main>${devTools ? devBar(station || 1) : ''}${rules}${buttonScript(station)}${screen ? screenScript(s.version) : ''}`,
   );
 }
 
 // ---------- Shareable report (opened on the visitor's own phone) ----------
 
-function reportPage(r, { url, mail = null }) {
+// With saved: true it is the downloaded copy (a standalone file), so the email form is left out.
+function reportPage(r, { url, mail = null, saved = false }) {
   const ins = buildInsights(r);
   const mailNotice = MAIL_RESULT[mail] ? `<div class="notice ${MAIL_RESULT[mail][0]}" role="status" style="margin-bottom:12px">${esc(MAIL_RESULT[mail][1])}</div>` : '';
   const reopen = ['invalid', 'invalid-name', 'invalid-phone'].includes(mail);
@@ -1163,7 +1255,7 @@ function reportPage(r, { url, mail = null }) {
 <section class="panel"><div class="eyebrow">About Drona</div>
 <p class="lead">Drona measures how students think, how they decide, and how well they know their own ability, not just whether an answer was right. Every question starts with a call: answer alone, ask for a hint, or pass.</p>
 <p class="small">These analytics are worked out by fixed rules from this hand's three questions, so they are a quick snapshot, not a full assessment.</p></section>
-<section class="panel">${mailNotice}<div class="eyebrow" style="margin-bottom:10px">Email this report</div>${reportForm(`/report/${r.id}/email`, { open: reopen })}</section>
+${saved ? `<p class="small" style="text-align:center">Online copy: ${esc(url)}</p>` : `<section class="panel">${mailNotice}<div class="eyebrow" style="margin-bottom:10px">Email this report</div>${reportForm(`/report/${r.id}/email`, { open: reopen, download: `/report/${r.id}/download` })}</section>`}
 </main>`,
   );
 }
