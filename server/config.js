@@ -39,6 +39,8 @@ module.exports = {
   DEBOUNCE_MS: Number(process.env.DEBOUNCE_MS) || 2000,
   // Simulator, code map and tap-log pages. Turn off at the booth with DEV_TOOLS=false.
   DEV_TOOLS: process.env.DEV_TOOLS !== 'false',
+  // The DEV TAP bar at the bottom of the game screen. Off unless DEV_BAR=true; the /dev pages stay available.
+  DEV_BAR: process.env.DEV_BAR === 'true',
   LOG_FILE: process.env.LOG_FILE || path.join(__dirname, '..', 'logs', 'taps.jsonl'),
   // Finished-hand reports, so shared report links keep working after a restart.
   REPORT_FILE: process.env.REPORT_FILE || path.join(__dirname, '..', 'logs', 'reports.jsonl'),

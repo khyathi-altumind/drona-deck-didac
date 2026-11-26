@@ -268,7 +268,7 @@ function createApp(overrides = {}) {
 
     if (!tap.card) {
       tapLog.add({ ...entry, outcome: 'unknown-card' });
-      return send(res, 404, views.unknownCardPage(tap, { devTools: cfg.DEV_TOOLS }));
+      return send(res, 404, views.unknownCardPage(tap, { devTools: cfg.DEV_TOOLS && cfg.DEV_BAR }));
     }
 
     // NFC readers can fire the same tag several times while the phone hovers over it.
@@ -313,7 +313,7 @@ function createApp(overrides = {}) {
       const { session: s } = loadSession(req, res, now());
       const report = s.reportId ? reports.get(s.reportId) : null;
       const reportUrl = report ? `${cfg.BASE_URL}/report/${report.id}` : null;
-      const html = views.playPage(s, { devTools: cfg.DEV_TOOLS, station, report, reportUrl, screen });
+      const html = views.playPage(s, { devTools: cfg.DEV_TOOLS && cfg.DEV_BAR, station, report, reportUrl, screen });
       s.notice = null; // notices show once
       s.showRules = false; // so does the rules pop-up
       s.openForm = false;

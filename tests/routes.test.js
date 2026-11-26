@@ -6,7 +6,7 @@ const { codeMap } = require('../server/codes');
 // Boots the real HTTP server on a random port with a controllable clock.
 async function boot(overrides = {}) {
   const clock = { t: 1_000_000 };
-  const app = createApp({ LOG_FILE: null, REPORT_FILE: null, EMAIL_FILE: null, mailer: null, DEV_TOOLS: true, DEBOUNCE_MS: 2000, IDLE_TIMEOUT_MS: 60_000, BASE_URL: 'https://drona.example', now: () => clock.t, ...overrides });
+  const app = createApp({ LOG_FILE: null, REPORT_FILE: null, EMAIL_FILE: null, mailer: null, DEV_TOOLS: true, DEV_BAR: true, DEBOUNCE_MS: 2000, IDLE_TIMEOUT_MS: 60_000, BASE_URL: 'https://drona.example', now: () => clock.t, ...overrides });
   await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${app.server.address().port}`;
   return { app, base, clock, close: () => new Promise((r) => app.server.close(r)) };
@@ -234,6 +234,14 @@ test('New player and the Rules card reset; dev tools can be switched off', async
   assert.match(page, /The Drona Deck/);
   assert.doesNotMatch(page, /DEV TAP/);
   assert.equal((await b.get('/dev/deck')).status, 404);
+});
+
+test('the DEV TAP bar is off by default, but the /dev pages still work', async (t) => {
+  const { base, close } = await boot({ DEV_BAR: false });
+  t.after(close);
+  const b = browser(base);
+  assert.doesNotMatch(await b.page(), /DEV TAP/);
+  assert.equal((await b.get('/dev/emails')).status, 200);
 });
 
 test('call button box: station is remembered and button presses are logged as such', async (t) => {

@@ -131,7 +131,8 @@ and are marked `review: 'approved'`.
 | `BASE_URL` | `http://<your LAN IP>:4300` | Domain used in the code map, QR codes and CSV, i.e. **what gets written to the tags** |
 | `IDLE_TIMEOUT_MS` | `180000` | Shared-device reset |
 | `DEBOUNCE_MS` | `2000` | Ignore repeat reads of the same tag |
-| `DEV_TOOLS` | `true` | `/dev/*` pages and the DEV TAP bar |
+| `DEV_TOOLS` | `true` | `/dev/*` pages (contacts, tap log, code map, simulator) |
+| `DEV_BAR` | `false` | `true` shows the DEV TAP bar on the game screen (needs `DEV_TOOLS` on) |
 | `LOG_FILE` | `logs/taps.jsonl` | One JSON line per tap |
 | `REPORT_FILE` | `logs/reports.jsonl` | Finished-hand reports, reloaded on start so shared links keep working |
 | `EMAIL_FILE` | `logs/emails.jsonl` | Visitor email addresses and send status |

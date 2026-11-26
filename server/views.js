@@ -39,7 +39,8 @@ svg.ic{width:1.1em;height:1.1em;flex:none;vertical-align:-.18em}
 
 /* Header bars */
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
-.wordmark{font-family:var(--serif);font-weight:500;font-size:28px;letter-spacing:-.01em;color:var(--gold-hi);display:inline-flex;align-items:baseline;gap:3px;line-height:1}
+.wordmark{font-family:var(--serif);font-weight:600;font-size:28px;letter-spacing:-.01em;color:var(--gold-hi);display:inline-flex;align-items:center;gap:8px;line-height:1;white-space:nowrap}
+.wordmark .dmark{width:1.15em;height:1.15em;flex:none}
 .wdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px rgba(244,196,106,.9);animation:pulse 2s infinite}
 .dot{color:var(--gold)}
 .meta{font-size:13px;color:var(--muted);text-align:right}
@@ -626,7 +627,7 @@ function header(s, station) {
   const where = station ? `Station ${station}` : 'DIDAC booth';
   const nav = NAV.map(([name, phases], i) => `<span class="${phases.includes(s.phase) ? 'on' : ''}">${i + 1}. ${name}</span>`).join('');
   return `<header class="kbar"><div class="kbar-in">
-<div class="kbrand"><span class="wordmark">Drona<i class="wdot"></i></span><span class="pill live"><i></i>${esc(where)}<span class="nfcx"> · NFC active</span></span></div>
+<div class="kbrand">${brand()}<span class="pill live"><i></i>${esc(where)}<span class="nfcx"> · NFC active</span></span></div>
 <nav class="knav" aria-label="Progress">${nav}</nav>
 <div class="kright"><span class="pill event"><i></i>DIDAC Bengaluru 2026</span>${newPlayerButton(s)}</div>
 </div></header>`;
@@ -1196,6 +1197,11 @@ const RULE_STEPS = [
 // Dronafy logo mark (the gold "D" from the Dronafy design system favicon), inline so it needs no file.
 const DRONAFY_MARK = '<svg class="dmark" xmlns="http://www.w3.org/2000/svg" viewBox="207 117 386 386" fill="#C9A84C" aria-hidden="true"><path d="M218.8,130.6c0,0,39.5,6.5,46.3,65.1c0,40.6,0,78.4,0,124.3c0,11,0,78.1,0,95.8l0,0l0,1.1c0,0.3,0,0.7,0,1l0,0l0,17.4c95.2-30.4,151.5,45.2,157.5,53.7c-48.8-72.1-110.9-77.8-140.5-75.7c-0.9-10.2,8.1-43.6,35.1-70.5c0.9-0.7,1.9-1.2,2.3-2.4c-0.5-0.3-1-0.5-1.4-0.7c-1.7-0.7-3.5-0.6-5.3-1c-2.7-0.6-4.6-2.9-4.7-5.6c-0.1-1.1,0.1-2.2,0.6-3.3c1-2.4,2.7-4.2,4.8-5.6c2.7-1.8,5.5-3.5,8.2-5.4c4.1-2.8,7.4-6.4,9.6-10.9c0.4-0.8,1-1.6,0.7-2.6c-0.2,0.1-0.4,0.2-0.5,0.3c-5.2,5.4-11.6,9.1-18.6,11.7c-3.1,1.2-6.1,2.9-8.6,5.2c-3.8,3.6-6.2,7.7-5.8,13c0,0.5,0.2,1.1-0.4,1.8c-1.7-3.3-2-6.5-1.3-9.8c1.1-5.5,4.3-9.7,8.5-13.1c2.5-2,5.3-3.8,7.9-5.7c3.5-2.5,6.4-5.8,8.4-9.6c3.7-7.2,4.3-14.4-0.5-21.8c-1.2-1.8-2.2-3.7-3.3-5.6c-6.4-11.2-10.3-23.7-10.4-36.6c-0.2-19,6.5-35.4,20.6-48.5c0.4-0.4,1.1-0.6,0.9-1.4c-10.5-3.9-16.9-12.3-17.5-23c0-0.1,0-0.2,0-0.2c-0.6-13.1,7-25.3,18.9-30.9c0.2-0.1,0.4-0.2,0.5-0.2C310.1,130.6,218.8,130.6,218.8,130.6z"/><path d="M577.8,272.1c-3.7-20.5-10.7-39.8-21.2-57.8c-16.7-28.6-40-50.1-69.7-64.6c-26.8-13-55.3-18.8-84.8-19c-12.3-0.1-24.7-0.1-37-0.1c12.6,4.6,21.5,12.2,21.5,12.8c-18.4-10.1-39.2,4.1-45.4,14.6c-0.1,0.2-0.1,0.5,0.2,0.6c0.5-0.4,1-0.9,1.5-1.4c5.2-5,11.2-8.8,18.1-11c4.7-1.5,9.5-2.2,14.5-1.4c3.9,0.7,7.4,2.3,9.8,5.6c0.3,0.4,0.9,0.9,0.3,1.7c-7.2,0-14.1,1.6-20.6,4.6c-6.5,3-12.4,6.8-17.2,12.9c1.4-0.1,2.1-0.7,2.8-1.1c2.8-1.4,5.6-3,8.5-4.3c6.4-3,13.1-5,20.2-6c8.2-1.2,16.3-1.1,24.4,0c11.1,1.5,21.7,4.7,31.4,10.2c8.3,4.7,15.4,11,20,20c2,3.9,2.5,8.3,2.3,12.6c0,0.9-0.3,1.6-1.3,2c0.7-0.2,0.9,0.4,1.2,0.8c3.7,4.9,5.6,10.9,7.7,16.7c1.9,5.2,3.4,10.4,4.3,15.8c0.9,4.9,1.4,10-1.2,14.6c-0.5,0.8-0.2,1.4,0.1,2.2c1.2,2.8,2.5,5.7,3.6,8.5c3,7.3,6.2,14.5,8.6,22c1.8,5.7-1.6,11.3-7.2,13.5c-0.1,0-0.2,0.1-0.4,0.1c-1.3,0.2-1.4,1-1,2.1c0.1,0.3,0.2,0.7,0.3,1c1,5.1,0.2,9.6-4,13.1c-2.2,0.4-4.1,0.1-2,1.2c2.1,1,2.9,3.8,1.4,5.6c0,0,0,0,0,0c-2.3,2.8-2.1,5.7-0.3,8.6c1.3,2.1,2.8,4.1,4.2,6.2c3.9,5.8,6.4,12.1,7.4,19.1c1,7.2,0.3,14.2-2.8,20.9c-0.6,1.4-1.3,2.7-2.3,3.7c-0.7-0.2-0.2-1.2-1.2-1c-0.2,0.7-0.3,1.3-0.5,2c-4.5,14.6-14.7,23.2-28.8,27.9c-1.5,0.5-1.6,0.4-1.7-1.3c-0.1-6.8-2.1-13.4-6.1-18.8c-3.4-4.6-7.8-8.3-12.2-11.9c-6.1-5-11.7-10.4-16.4-16.8c-0.3-0.3-0.4-0.8-1.1-0.9c-0.8,19.9,42.8,66.8,49.7,83c5,11.6,8.4,23.5,8.1,36.2c0,0.3,0,0.7,0.3,1c110-15.8,116-135.5,117-155.7C581.7,305.3,580.8,288.6,577.8,272.1z"/></svg>';
 
+// Site logo: Dronafy mark + name (top bar of the game, report and dev pages).
+function brand() {
+  return `<span class="wordmark">${DRONAFY_MARK}Dronafy</span>`;
+}
+
 // "How to play" pop-up, shown on the welcome screen of a new session, after the Rules card and after New player.
 // Closes with the buttons, the backdrop or Escape; tapping any card also moves past it.
 function rulesModal() {
@@ -1244,7 +1250,7 @@ function reportPage(r, { url, mail = null, saved = false }) {
   return layout(
     `Drona report · ${r.subject.name}`,
     `<main class="screen" style="padding-bottom:32px">
-<header class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Quick Hand report<br>${esc(reportWhen(r))} IST</span></header>
+<header class="top">${brand()}<span class="meta">Quick Hand report<br>${esc(reportWhen(r))} IST</span></header>
 <section class="panel">${resultSummary(r)}</section>
 <section class="panel">${glanceSection(r, ins)}</section>
 <section class="panel">${depthSection(r, ins)}</section>
@@ -1263,7 +1269,7 @@ ${saved ? `<p class="small" style="text-align:center">Online copy: ${esc(url)}</
 function reportMissingPage() {
   return layout(
     'Report not found',
-    `<main class="screen"><header class="top"><span class="wordmark">Drona<span class="dot">.</span></span></header>
+    `<main class="screen"><header class="top">${brand()}</header>
 <section class="panel"><div class="eyebrow">Report not found</div><h1>We can’t find this report<span class="dot">.</span></h1>
 <p class="lead">The link may be incomplete, or the report has expired. Please ask the Drona team at the booth.</p></section></main>`,
   );
@@ -1272,7 +1278,7 @@ function reportMissingPage() {
 function unknownCardPage(tap, { devTools }) {
   return layout(
     'Unknown card',
-    `<main class="screen"><header class="top"><span class="wordmark">Drona<span class="dot">.</span></span></header>
+    `<main class="screen"><header class="top">${brand()}</header>
 <section class="panel"><div class="eyebrow">Unknown card</div><h1>We don’t recognise this card<span class="dot">.</span></h1>
 <p class="lead">Code <code>${esc(tap.code)}</code> isn’t in the Drona Deck. Please hand it to the booth team.</p>
 <p style="margin-top:16px"><a class="btn" href="/play">Back to the game</a></p></section></main>${devTools ? devBar(1) : ''}`,
@@ -1284,7 +1290,7 @@ function sentToScreenPage(tap, { station, debounced }) {
   const what = tap.card ? `${KIND_LABEL[tap.kind]} · ${tap.card.name}` : tap.code;
   return layout(
     'Sent to screen',
-    `<main class="screen sent"><header class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="pill live"><i></i>Station ${station}</span></header>
+    `<main class="screen sent"><header class="top">${brand()}<span class="pill live"><i></i>Station ${station}</span></header>
 <section class="panel glow sentcard"><div class="sentok" aria-hidden="true">✓</div>
 <div class="eyebrow gold">${debounced ? 'Already sent' : 'Sent to the screen'}</div>
 <h1>${esc(what)}<span class="dot">.</span></h1>
@@ -1324,7 +1330,7 @@ function notFoundPage() {
 function devIndexPage(baseUrl) {
   return layout(
     'Drona Deck dev tools',
-    `<main class="screen"><header class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Dev tools</span></header>
+    `<main class="screen"><header class="top">${brand()}<span class="meta">Dev tools</span></header>
 <section class="panel"><div class="eyebrow">Testing without cards</div>
 <ul class="rules" style="list-style:disc;padding-left:18px;display:block">
 <li style="display:list-item"><a href="/dev/deck">Simulator</a>: click cards and watch the phone screen, state and tap log update.</li>
@@ -1363,7 +1369,7 @@ select{font:inherit;background:var(--panel);color:var(--ivory);border:1px solid 
 </style>
 <div class="simwrap">
 <section class="panel">
-  <div class="top" style="padding-bottom:10px"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Simulator</span></div>
+  <div class="top" style="padding-bottom:10px">${brand()}<span class="meta">Simulator</span></div>
   <label class="eyebrow" style="display:block;margin-top:12px">Physical set
     <select id="set"><option value="1">Set 1 · Station 1</option><option value="2">Set 2 · Station 2</option><option value="3">Set 3 · Spare</option><option value="">No set number</option></select>
   </label>
@@ -1421,7 +1427,7 @@ function devCodesPage(rows, baseUrl, setFilter) {
   return layout(
     'Drona Deck code map',
     `<style>.qr svg{background:#fff;padding:4px;border-radius:4px;display:block}.wrap{padding:16px;max-width:1100px;margin:0 auto}.tablewrap{overflow-x:auto}</style>
-<div class="wrap"><div class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Code map · ${tabs}</span></div>
+<div class="wrap"><div class="top">${brand()}<span class="meta">Code map · ${tabs}</span></div>
 <p class="lead">Base URL: <code>${esc(baseUrl)}</code>. Set <code>BASE_URL</code> to the real https domain before writing tags.
 Scan any QR with a phone on the same Wi-Fi. Opening the URL is exactly what an NFC tap does. <a href="/dev/codes.csv">Download CSV</a></p>
 <div class="tablewrap"><table><thead><tr><th>Set</th><th>Item</th><th>Type</th><th>Code</th><th>URL (tag + QR)</th><th>Booth</th><th>QR</th></tr></thead><tbody>${body}</tbody></table></div></div>
@@ -1445,7 +1451,7 @@ function devLogPage(entries) {
     .join('');
   return layout(
     'Drona Deck tap log',
-    `<div style="padding:16px;max-width:1100px;margin:0 auto"><div class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Tap log · auto-refresh 3s · <a href="/dev">Tools</a></span></div>
+    `<div style="padding:16px;max-width:1100px;margin:0 auto"><div class="top">${brand()}<span class="meta">Tap log · auto-refresh 3s · <a href="/dev">Tools</a></span></div>
 <div style="overflow-x:auto"><table><thead><tr><th>Time (UTC)</th><th>Set</th><th>Path</th><th>Outcome</th><th>State after</th><th>Session</th></tr></thead><tbody>${body || '<tr><td colspan="6">No taps yet.</td></tr>'}</tbody></table></div></div>`,
     { refresh: 3 },
   );
@@ -1459,7 +1465,7 @@ function devEmailsPage(records, { baseUrl, smtp }) {
     .join('');
   return layout(
     'Drona Deck contacts',
-    `<div style="padding:16px;max-width:1100px;margin:0 auto"><div class="top"><span class="wordmark">Drona<span class="dot">.</span></span><span class="meta">Saved contacts · <a href="/dev/emails.csv">CSV</a> · <a href="/dev">Tools</a></span></div>
+    `<div style="padding:16px;max-width:1100px;margin:0 auto"><div class="top">${brand()}<span class="meta">Saved contacts · <a href="/dev/emails.csv">CSV</a> · <a href="/dev">Tools</a></span></div>
 <p class="lead">Sending: <b>${smtp ? 'on (SMTP set up)' : 'off. Set SMTP_HOST to send. Details are still saved'}</b>. Personal data: delete <code>logs/emails.jsonl</code> after the event.</p>
 <div style="overflow-x:auto"><table><thead><tr><th>Time (UTC)</th><th>Name</th><th>Phone</th><th>Email</th><th>From</th><th>Status</th><th>Report</th></tr></thead><tbody>${body || '<tr><td colspan="7">No contacts yet.</td></tr>'}</tbody></table></div></div>`,
   );
